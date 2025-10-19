@@ -1,6 +1,6 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, TableInheritance, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, TableInheritance, UpdateDateColumn } from "typeorm";
 import { UserRole } from "./enums/user-role.enum";
-// import { EquipmentEntity } from "../../domain/entities/equipment.entity"; // ! Provicional
+import {Equipment} from "../../equipments/entities/equipment.entity";
 
 @Entity('User')
 @TableInheritance({ column: { type: 'enum', enum: UserRole, name: "role", default: UserRole.USER } })
@@ -32,6 +32,6 @@ export class User {
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  // @OneToMany(() => EquipmentEntity, equipment => equipment.user, {nullable: true})
-  // equipments?: EquipmentEntity[]; Por el momento para probar
+  @OneToMany(() => Equipment, equipment => equipment.user, {nullable: true})
+  equipments?: Equipment[];
 }

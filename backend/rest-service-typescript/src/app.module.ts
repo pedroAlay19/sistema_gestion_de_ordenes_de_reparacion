@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
-import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
-import { EquipmentModule } from './equipment/equipment.module';
-import { ServicesModule } from './services/services.module';
-import { InventoryModule } from './inventory/inventory.module';
-import { TicketsModule } from './tickets/tickets.module';
-import { NotificationsModule } from './notifications/notifications.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { User } from './users/entities/user.entity';
-import { Technician } from './users/entities/technician.entity';
+// import { Equipment } from './equipments/entities/equipment.entity';
+import { MaintenanceServicesModule } from './maintenance-services/maintenance-services.module';
+import { SparePartsModule } from './spare-parts/spare-parts.module';
+import { RepairOrdersModule } from './repair-orders/repair-orders.module';
+import { EquipmentsModule } from './equipments/equipments.module';
+import { RepairOrderReviewsModule } from './repair-order-reviews/repair-order-reviews.module';
+// import { User } from './users/entities/user.entity';
+// import { Technician } from './users/entities/technician.entity';
+// import { SparePart } from './spare-parts/entities/spare-part.entity';
+// import { RepairOrderDetail } from './repair-orders/entities/repair-order-detail.entity';
+// import { RepairOrderPart } from './repair-orders/entities/repair-order-part.entity';
+// import { RepairOrder } from './repair-orders/entities/repair-order.entity';
+// import { RepairOrderReview } from './repair-order-reviews/entities/repair-order-review.entity';
+// import { MaintenanceService } from './maintenance-services/entities/maintenance-service.entity';
 
 @Module({
   imports: [
@@ -19,10 +24,15 @@ import { Technician } from './users/entities/technician.entity';
       username: 'postgres',
       password: '1234',
       database: 'testdb',
-      entities: [User, Technician],
+      autoLoadEntities: true,
       synchronize: true,
     }),
-    AuthModule, UsersModule, EquipmentModule, ServicesModule, InventoryModule, TicketsModule, NotificationsModule],
+    EquipmentsModule,
+    MaintenanceServicesModule,
+    SparePartsModule,
+    RepairOrdersModule,
+    EquipmentsModule,
+    RepairOrderReviewsModule],
   controllers: [],
   providers: [],
 })

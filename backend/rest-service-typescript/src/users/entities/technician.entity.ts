@@ -1,12 +1,12 @@
-import { Column, ChildEntity } from 'typeorm';
-// import { TicketServiceEntity } from '../../domain/entities/ticket-service.entity';
+import { Column, ChildEntity, OneToMany } from 'typeorm';
+import { RepairOrderDetail } from '../../repair-orders/entities/repair-order-detail.entity'
 import { User } from './user.entity';
 import { UserRole } from './enums/user-role.enum';
 
 @ChildEntity(UserRole.TECHNICIAN)
 export class Technician extends User {
-  // @OneToMany(() => TicketServiceEntity, ts => ts.technician, {nullable: true})
-  // ticketServices?: TicketServiceEntity[]; Por el momento para probar
+  @OneToMany(() => RepairOrderDetail, ts => ts.technician, {nullable: true})
+  ticketServices?: RepairOrderDetail[];
 
   @Column()
   specialty!: string;

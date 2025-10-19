@@ -43,6 +43,12 @@ export class UsersService {
     return userFound;
   }
 
+  async findOneTechnician(id: string) {
+    const userFound = await this.technicianRepository.findOneBy({id});
+    if (!userFound) throw new NotFoundException(`User with id ${id} not found`);
+    return userFound;
+  }
+
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
     const userFound = await this.userRepository.findOneBy({id});
     if (!userFound) throw new NotFoundException(`User with id ${id} not found`);

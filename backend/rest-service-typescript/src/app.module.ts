@@ -14,6 +14,7 @@ import { RepairOrderReviewsModule } from './repair-order-reviews/repair-order-re
 // import { RepairOrder } from './repair-orders/entities/repair-order.entity';
 // import { RepairOrderReview } from './repair-order-reviews/entities/repair-order-review.entity';
 // import { MaintenanceService } from './maintenance-services/entities/maintenance-service.entity';
+import { MaintenanceServicesModule } from './maintenance-services/maintenance-services.module';
 
 @Module({
   imports: [

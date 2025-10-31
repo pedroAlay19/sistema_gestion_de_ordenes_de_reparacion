@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,7 +14,6 @@ import { UserRole } from './entities/enums/user-role.enum';
 
 @Injectable()
 export class UsersService {
-
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -30,42 +33,61 @@ export class UsersService {
   }
 
   async findUsers() {
-    return await this.userRepository.find({where: {role: UserRole.USER}});
+    return await this.userRepository.find({
+      where: { role: UserRole.USER },
+      relations: ['equipments.repairOrders.repairOrderDetails'],
+    });
   }
 
   async findTechnicians() {
-    return await this.technicianRepository.find();
+    return await this.technicianRepository.find({
+      relations: ['ticketServices.service'],
+    });
   }
 
   async findOne(id: string) {
-    const userFound = await this.userRepository.findOneBy({id});
+    const userFound = await this.userRepository.findOneBy({ id });
     if (!userFound) throw new NotFoundException(`User with id ${id} not found`);
     return userFound;
   }
 
   async findOneTechnician(id: string) {
-    const userFound = await this.technicianRepository.findOneBy({id});
+    const userFound = await this.technicianRepository.findOneBy({ id });
     if (!userFound) throw new NotFoundException(`User with id ${id} not found`);
     return userFound;
   }
 
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { email },
+    });
+    if (!user)
+      throw new NotFoundException(`User with email ${email} not found`);
+    return user;
+  }
+
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
-    const userFound = await this.userRepository.findOneBy({id});
+    const userFound = await this.userRepository.findOneBy({ id });
     if (!userFound) throw new NotFoundException(`User with id ${id} not found`);
-    if (userFound.role !== UserRole.USER) throw new BadRequestException(`Cannot update a technician with this endpoint`);
+    if (userFound.role !== UserRole.USER)
+      throw new BadRequestException(
+        `Cannot update a technician with this endpoint`,
+      );
     await this.userRepository.update(id, updateUserDto);
-    return await this.userRepository.findOneBy({id});
+    return await this.userRepository.findOneBy({ id });
   }
 
   async updateTechnician(id: string, updateTechnicianDto: UpdateUserDto) {
-    const technicianFound = await this.technicianRepository.findOneBy({id});
-    if (!technicianFound) throw new NotFoundException(`Technician with id ${id} not found`);
+    const technicianFound = await this.technicianRepository.findOneBy({ id });
+    if (!technicianFound)
+      throw new NotFoundException(`Technician with id ${id} not found`);
     await this.technicianRepository.update(id, updateTechnicianDto);
-    return await this.technicianRepository.findOneBy({id});
+    return await this.technicianRepository.findOneBy({ id });
   }
 
   async remove(id: string) {
-    if (!await this.userRepository.findOneBy({id})) throw new NotFoundException(`User with id ${id} not found`);
+    if (!(await this.userRepository.findOneBy({ id })))
+      throw new NotFoundException(`User with id ${id} not found`);
     await this.userRepository.delete(id);
   }
 }

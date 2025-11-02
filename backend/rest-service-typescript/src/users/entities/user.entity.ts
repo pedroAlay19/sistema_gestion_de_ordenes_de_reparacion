@@ -11,7 +11,7 @@ export class User {
   @Column()
   name!: string;
 
-  @Column()
+  @Column({nullable: true})
   lastName!: string;
 
   @Column({unique: true})
@@ -20,10 +20,10 @@ export class User {
   @Column({nullable: true}) // Por ahora para no tener problemas con la bd
   password!: string
 
-  @Column()
+  @Column({nullable: true})
   phone!: string;
 
-  @Column()
+  @Column({nullable: true})
   address!: string;
 
   @Column({type: 'enum', enum: UserRole, default: UserRole.USER})

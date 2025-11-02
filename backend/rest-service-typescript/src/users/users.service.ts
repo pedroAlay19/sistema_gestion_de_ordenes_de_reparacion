@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -72,7 +73,7 @@ export class UsersService {
       where: { email },
     });
     if (!user)
-      throw new NotFoundException(`User with email ${email} not found`);
+      throw new UnauthorizedException(`User with email ${email} not found`);
     return user;
   }
 

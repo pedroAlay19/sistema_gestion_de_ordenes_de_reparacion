@@ -6,20 +6,20 @@ import {
   HttpStatus,
   Post,
   Request,
-  UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/signin.dto';
-import {AuthGuard} from './auth.guard';
-import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { UserRole } from 'src/users/entities/enums/user-role.enum';
+import { Auth } from './decorators/auth.decorator';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
-  register(@Body() registerDto: RegisterDto) {
+  register(@Body() registerDto: CreateUserDto) {
     return this.authService.register(registerDto);
   }
 
@@ -28,9 +28,9 @@ export class AuthController {
   signIn(@Body() signInDto: SignInDto) {
     return this.authService.signIn(signInDto);
   }
-
-  @UseGuards(AuthGuard)
+  
   @Get('profile')
+  @Auth(UserRole.TECHNICIAN)
   getProfile(@Request() req: { user: JwtPayload}) {
     return req.user;
   }

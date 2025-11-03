@@ -12,6 +12,7 @@ import { Repository } from 'typeorm';
 import { Technician } from './entities/technician.entity';
 import { CreateTechnicianDto } from './dto/create-technician.dto';
 import { UserRole } from './entities/enums/user-role.enum';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -25,21 +26,35 @@ export class UsersService {
 
   async createUser(createUserDto: CreateUserDto) {
     const { email } = createUserDto;
-    const existingUser = await this.userRepository.findOne({ where: { email } });
+    const existingUser = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingUser) {
-      throw new BadRequestException('A user already exists with this associated email address.');
+      throw new BadRequestException(
+        'A user already exists with this associated email address.',
+      );
     }
-    const user = this.userRepository.create(createUserDto);
+    const user = this.userRepository.create({
+      ...createUserDto,
+      password: await bcrypt.hash(createUserDto.password, 10),
+    });
     return await this.userRepository.save(user);
   }
 
   async createTechnician(createTechnicianDto: CreateTechnicianDto) {
     const { email } = createTechnicianDto;
-    const existingTechnician = await this.userRepository.findOne({ where: { email } });
+    const existingTechnician = await this.userRepository.findOne({
+      where: { email },
+    });
     if (existingTechnician) {
-      throw new BadRequestException('A user already exists with this associated email address.');
+      throw new BadRequestException(
+        'A user already exists with this associated email address.',
+      );
     }
-    const technician = this.technicianRepository.create(createTechnicianDto);
+    const technician = this.technicianRepository.create({
+      ...createTechnicianDto,
+      password: await bcrypt.hash(createTechnicianDto.password, 10),
+    });
     return await this.technicianRepository.save(technician);
   }
 

@@ -20,7 +20,6 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
-  @Post()
   @ApiOperation({ summary: 'Create a new user (client)' })
   @ApiResponse({
     status: 201,

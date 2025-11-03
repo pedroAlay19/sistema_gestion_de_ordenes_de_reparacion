@@ -1,22 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsPhoneNumber, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsPhoneNumber,
+  IsString,
+  MinLength,
+} from 'class-validator';
+
+import { Transform } from "class-transformer";
+
 
 export class CreateUserDto {
   @ApiProperty({
     example: 'Pedro',
     description: 'First name of the user.',
-  })  
+  })
+  @Transform(({ value }: { value: string }) => value.trim())
   @IsString()
   @IsNotEmpty()
   name!: string;
-
-  @ApiProperty({
-    example: 'Alay',
-    description: 'Last name of the user.',
-  })
-  @IsString()
-  @IsOptional()
-  lastName!: string;
 
   @ApiProperty({
     example: 'pedrocrackc@gmail.com',
@@ -25,6 +28,20 @@ export class CreateUserDto {
   @IsEmail()
   @IsNotEmpty()
   email!: string;
+
+  @Transform(({ value }: { value: string }) => value.trim())
+  @IsString()
+  @MinLength(6)
+  password: string;
+
+  // Pueden ser opcionales
+  @ApiProperty({
+    example: 'Alay',
+    description: 'Last name of the user.',
+  })
+  @IsString()
+  @IsOptional()
+  lastName!: string;
 
   @ApiProperty({
     example: '+593987654321',
@@ -41,4 +58,6 @@ export class CreateUserDto {
   @IsString()
   @IsOptional()
   address!: string;
+
+  
 }

@@ -45,7 +45,9 @@ export class MaintenanceServicesService {
   }
 
   async findAll() {
-    return await this.serviceRepository.find();
+    return await this.serviceRepository.find(
+      { order: { serviceName: 'ASC' } },
+    );
   }
 
   async findOne(id: string) {

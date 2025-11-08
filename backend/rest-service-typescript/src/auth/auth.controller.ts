@@ -31,7 +31,7 @@ export class AuthController {
   }
 
   @Get('profile')
-  @Auth(UserRole.TECHNICIAN)
+  @Auth(UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.USER)
   getProfile(@ActiveUser() user: JwtPayload) {
     return user;
   }

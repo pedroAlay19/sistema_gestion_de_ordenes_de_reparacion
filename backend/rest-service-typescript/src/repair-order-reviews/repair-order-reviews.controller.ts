@@ -23,6 +23,11 @@ export class RepairOrderReviewsController {
     return this.repairOrderReviewsService.findAll(user);
   }
 
+  @Get('best-reviews')
+  getBestReviews() {
+    return this.repairOrderReviewsService.findBestsReviews();
+  }
+
   @Get(':id')
   @Auth(UserRole.ADMIN, UserRole.USER)
   findOne(@Param('id') id: string, @ActiveUser() user: JwtPayload) {

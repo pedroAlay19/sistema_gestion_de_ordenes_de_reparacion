@@ -33,6 +33,6 @@ export class AuthController {
   @Get('profile')
   @Auth(UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.USER)
   getProfile(@ActiveUser() user: JwtPayload) {
-    return user;
+    return this.authService.getProfile(user.sub);
   }
 }

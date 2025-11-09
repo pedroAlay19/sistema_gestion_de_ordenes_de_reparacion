@@ -26,13 +26,10 @@ export class Equipment {
   @Column({nullable: true})
   serialNumber?: string;
 
-  @Column({nullable: true})
-  observations?: string;
-
   @CreateDateColumn()
   createdAt!: Date;
 
-  @Column({type: 'enum', enum: EquipmentStatus, default: EquipmentStatus.RECEIVED})
+  @Column({type: 'enum', enum: EquipmentStatus, default: EquipmentStatus.AVAILABLE})
   currentStatus!: EquipmentStatus;
 
   @OneToMany(() => RepairOrder, rp => rp.equipment)

@@ -1,8 +1,11 @@
 export enum OrderRepairStatus {
-  OPEN = "OPEN",
-  IN_PROGRESS = "IN_PROGRESS",
-  RESOLVED = "RESOLVED",
-  CLOSED = "CLOSED"
+  IN_REVIEW = "IN_REVIEW",
+  WAITING_APPROVAL = "WAITING_APPROVAL",
+  REJECTED = "REJECTED",
+  IN_REPAIR = "IN_REPAIR",
+  WAITING_PARTS = "WAITING_PARTS",
+  READRY = "READY",
+  DELIVERED = "DELIVERED"
 }
 
 export enum NotificationStatus {
@@ -13,6 +16,5 @@ export enum NotificationStatus {
 export enum TicketServiceStatus {
   PENDING = "PENDING",
   IN_PROGRESS = "IN_PROGRESS",
-  DONE = "DONE",
-  CANCELLED = "CANCELLED"
+  COMPLETED = "COMPLETED"
 }

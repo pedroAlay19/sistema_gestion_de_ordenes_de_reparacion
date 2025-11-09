@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getServices } from "../api/api";
-import type { Service } from "../interfaces/Service";
+import type { Service } from "../types/service.types";
 
 const Services = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);

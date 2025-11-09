@@ -25,11 +25,14 @@ export class RepairOrder {
   @Column({ type: 'text' })
   problemDescription!: string;
 
+  @Column({ type: 'text', array: true, nullable: true })
+  imageUrls?: string[];
+
   @Column({ type: 'text', nullable: true })
   diagnosis?: string;
 
-  @Column({ type: 'numeric', precision: 12, scale: 2 })
-  estimatedCost: number;
+  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
+  estimatedCost?: number;
 
   @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
   finalCost?: number;
@@ -40,7 +43,7 @@ export class RepairOrder {
   @Column({ type: 'date', nullable: true })
   warrantyEndDate?: Date;
 
-  @Column({ type: 'enum', enum: OrderRepairStatus, default: OrderRepairStatus.OPEN })
+  @Column({ type: 'enum', enum: OrderRepairStatus, default: OrderRepairStatus.IN_REVIEW })
   status!: OrderRepairStatus;
 
   @OneToMany(() => RepairOrderDetail, (ts) => ts.repairOrder)

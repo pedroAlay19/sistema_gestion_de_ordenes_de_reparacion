@@ -34,15 +34,10 @@ export class RepairOrderReviewsService {
       createRepairOrderReviewDto.repairOrderId,
       user,
     );
-    if (
-      repairOrder.status !== OrderRepairStatus.RESOLVED &&
-      repairOrder.status !== OrderRepairStatus.CLOSED
-    ) {
+    if (repairOrder.status !== OrderRepairStatus.DELIVERED)
       throw new BadRequestException(
         'Cannot create review before the repair is completed',
       );
-    }
-
     const existingReview = await this.repairOrderReviewRepository.findOne({
       where: { repairOrder: { id: createRepairOrderReviewDto.repairOrderId } },
     });

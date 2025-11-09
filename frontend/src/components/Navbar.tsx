@@ -62,9 +62,12 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <span className="text-sm text-gray-600">
-                  Hola, <span className="font-medium text-gray-900">{user?.name}</span>
-                </span>
+                <Link
+                  to="/user/dashboard"
+                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200"
+                >
+                  Mi Dashboard
+                </Link>
                 <button
                   onClick={handleSignOut}
                   className="px-4 py-1.5 bg-gray-100 text-gray-900 text-sm rounded-full hover:bg-gray-200 transition-all duration-200"

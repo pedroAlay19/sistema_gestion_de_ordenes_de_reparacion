@@ -17,24 +17,24 @@ export class NotificationService {
   let message: string;
 
   switch (status) {
-    case OrderRepairStatus.OPEN:
-      title = 'Repair Order Opened';
-      message = 'A new repair order has been created.';
+    case OrderRepairStatus.IN_REVIEW:
+      title = 'Repair Order In Review';
+      message = 'The repair order is currently under review.';
       break;
 
-    case OrderRepairStatus.IN_PROGRESS:
-      title = 'Repair In Progress';
-      message = 'The repair order is currently being worked on.';
+    case OrderRepairStatus.WAITING_APPROVAL:
+      title = 'Repair Order Waiting Approval';
+      message = 'The repair order is waiting for approval.';
       break;
 
-    case OrderRepairStatus.RESOLVED:
-      title = 'Repair Order Resolved';
-      message = 'The repair order has been successfully completed.';
+    case OrderRepairStatus.IN_REPAIR:
+      title = 'Repair Order In Repair';
+      message = 'The repair order is currently being repaired.';
       break;
 
-    case OrderRepairStatus.CLOSED:
-      title = 'Repair Order Closed';
-      message = 'The repair order has been closed.';
+    case OrderRepairStatus.REJECTED:
+      title = 'Repair Order Rejected';
+      message = 'The repair order has been rejected.';
       break;
 
     default:

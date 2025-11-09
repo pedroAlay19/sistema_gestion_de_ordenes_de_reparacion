@@ -12,7 +12,7 @@ export class RepairOrdersController {
   constructor(private readonly repairOrdersService: RepairOrdersService) {}
 
   @Post()
-  @Auth(UserRole.TECHNICIAN)
+  @Auth(UserRole.TECHNICIAN, UserRole.USER)
   create(@Body() createRepairOrderDto: CreateRepairOrderDto) {
     return this.repairOrdersService.create(createRepairOrderDto);
   }

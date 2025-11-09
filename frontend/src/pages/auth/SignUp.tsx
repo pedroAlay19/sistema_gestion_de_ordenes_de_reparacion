@@ -30,7 +30,7 @@ const SignUp = () => {
     setIsLoading(true);
     try {
       await signUp(name, email, password);
-      navigate("/");
+      navigate("/user/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al registrarse");
     } finally {

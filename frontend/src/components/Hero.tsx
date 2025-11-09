@@ -7,8 +7,8 @@ const Hero = () => {
 
   const handleSolicitarServicio = () => {
     if (isAuthenticated) {
-      // Si está autenticado, ir a la página de servicios (por ahora solo scroll)
-      document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
+      // Si está autenticado, ir al dashboard
+      navigate("/user/dashboard");
     } else {
       // Si no está autenticado, redirigir a registro
       navigate("/auth/signup");
@@ -57,7 +57,9 @@ const Hero = () => {
             onClick={handleSolicitarServicio}
             className="px-8 py-3 bg-white text-black text-base font-medium rounded-full hover:bg-gray-100 transition-all duration-200 shadow-lg hover:shadow-xl"
           >
-            {isAuthenticated ? "Solicitar servicio" : "Registrarse para solicitar"}
+            {isAuthenticated
+              ? "Solicitar servicio"
+              : "Registrarse para solicitar"}
           </button>
           <button
             onClick={() =>

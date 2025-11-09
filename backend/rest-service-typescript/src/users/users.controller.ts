@@ -51,13 +51,6 @@ export class UsersController {
     return this.usersService.findOne(id);
   }
 
-  
-  @Get('profile')
-  @Auth(UserRole.USER, UserRole.ADMIN, UserRole.TECHNICIAN)
-  getProfile(@ActiveUser() user: JwtPayload) {
-    return this.usersService.findOne(user.sub);
-  }
-
   @Patch('profile')
   @Auth(UserRole.USER, UserRole.ADMIN, UserRole.TECHNICIAN)
   updateUserProfile(

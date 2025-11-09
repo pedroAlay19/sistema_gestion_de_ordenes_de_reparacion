@@ -1,15 +1,5 @@
 import { createContext } from 'react';
-import type { User } from '../interfaces/auth.types';
+import type { AuthContextType } from '../types/auth.types';
 
-// Tipo del contexto
-interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
-  signOut: () => void;
-}
-
-// Crear el contexto
+// Crear el contexto de autenticación
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

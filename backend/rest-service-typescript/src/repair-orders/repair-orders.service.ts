@@ -38,7 +38,7 @@ export class RepairOrdersService {
 
   async create(createRepairOrderDto: CreateRepairOrderDto) {
     const equipmentFound = await this.equipmentsService.findOneById(
-      createRepairOrderDto.equipmentId
+      createRepairOrderDto.equipmentId,
     );
 
     // Crear la orden principal
@@ -48,33 +48,39 @@ export class RepairOrdersService {
       finalCost: 0,
     });
     const savedOrderRepair = await this.repairOrderRepository.save(repairOrder);
+    let totalDetails = 0;
+    let totalParts = 0;
 
     // Crear los detalles asociados
-    const details = await this.repairOrderDetailsService.create(
-      createRepairOrderDto.details,
-      savedOrderRepair,
-    );
+    if (createRepairOrderDto.details?.length) {
+      const details = await this.repairOrderDetailsService.create(
+        createRepairOrderDto.details,
+        savedOrderRepair,
+      );
+      totalDetails = details.reduce(
+        (sum, d) => sum + Number(d.subTotal),
+        0,
+      );
+      savedOrderRepair.repairOrderDetails = details;
+    }
     // Crear las piezas asociadas
-    const parts = await this.repairOrderPartsService.create(
-      createRepairOrderDto.parts,
-      savedOrderRepair,
-    );
+    if (createRepairOrderDto.parts?.length) {
+      const parts = await this.repairOrderPartsService.create(
+        createRepairOrderDto.parts,
+        savedOrderRepair,
+      );
+      totalParts = parts.reduce((sum, p) => sum + Number(p.subTotal), 0);
+      savedOrderRepair.repairOrderParts = parts;
+    }
 
-    // Calcular costo total de servicios y partes
-    const totalDetails = details.reduce(
-      (sum, d) => sum + Number(d.subTotal),
-      0,
-    );
-    const totalParts = parts.reduce((sum, p) => sum + Number(p.subTotal), 0);
     const finalCost = totalDetails + totalParts;
 
     // Actualizar la orden con el costo final
     savedOrderRepair.finalCost = finalCost;
-    savedOrderRepair.repairOrderDetails = details;
-    savedOrderRepair.repairOrderParts = parts;
+    savedOrderRepair.finalCost = finalCost;
     const savedOrder = await this.repairOrderRepository.save(savedOrderRepair);
 
-    await this.notificationService.create(savedOrder, OrderRepairStatus.OPEN);
+    await this.notificationService.create(savedOrder, OrderRepairStatus.IN_REVIEW);
 
     try {
       await firstValueFrom(
@@ -132,7 +138,11 @@ export class RepairOrdersService {
   async findOne(id: string, user: JwtPayload) {
     const repairOrder = await this.repairOrderRepository.findOne({
       where: { id },
-      relations: ['repairOrderDetails.technician', 'equipment.user', 'repairOrderParts'],
+      relations: [
+        'repairOrderDetails.technician',
+        'equipment.user',
+        'repairOrderParts',
+      ],
     });
     if (!repairOrder)
       throw new NotFoundException(`Repair order with ${id} not found`);
@@ -205,7 +215,6 @@ export class RepairOrdersService {
   }
 
   async remove(id: string, user: JwtPayload) {
-
     const repairOrder = await this.findOne(id, user);
     await this.repairOrderRepository.remove(repairOrder);
   }

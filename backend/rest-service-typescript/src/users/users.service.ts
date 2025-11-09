@@ -77,6 +77,13 @@ export class UsersService {
     return userFound;
   }
 
+  async getProfile(id: string) {
+    return this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'name', 'email', 'role'],
+    });
+  }
+
   async findOneTechnician(id: string) {
     const userFound = await this.technicianRepository.findOneBy({ id });
     if (!userFound) throw new NotFoundException(`User with id ${id} not found`);

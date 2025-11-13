@@ -1,14 +1,7 @@
-/**
- * TechnicianSidebar Component
- * Barra lateral de navegación para técnicos
- */
-
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   HomeIcon,
   WrenchScrewdriverIcon,
-  ClipboardDocumentListIcon,
-  ChartBarIcon,
   UserIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
@@ -31,17 +24,7 @@ export default function TechnicianSidebar() {
       path: '/technician/orders',
       icon: WrenchScrewdriverIcon,
       label: 'Órdenes',
-    },
-    {
-      path: '/technician/completed',
-      icon: ClipboardDocumentListIcon,
-      label: 'Completadas',
-    },
-    {
-      path: '/technician/stats',
-      icon: ChartBarIcon,
-      label: 'Estadísticas',
-    },
+    }
   ];
 
   return (

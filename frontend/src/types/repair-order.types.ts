@@ -106,6 +106,19 @@ export interface RepairOrderReview {
 // Orden de reparación completa
 export interface RepairOrder {
   id: string;
+  diagnosis?: string;
+  problemDescription: string;
+  status: OrderRepairStatus;
+  estimatedCost?: number;
+  finalCost?: number;
+  imageUrls?: string[];
+  warrantyStartDate?: string;
+  warrantyEndDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  review?: RepairOrderReview;
+  repairOrderDetails?: RepairOrderDetail[];
+  repairOrderParts?: RepairOrderPart[];
   equipment: {
     id: string;
     name: string;
@@ -115,19 +128,7 @@ export interface RepairOrder {
     serialNumber?: string;
     user?: User;
   };
-  problemDescription: string;
-  imageUrls?: string[];
-  diagnosis?: string;
-  estimatedCost?: number;
-  finalCost?: number;
-  warrantyStartDate?: string;
-  warrantyEndDate?: string;
-  status: OrderRepairStatus;
-  repairOrderDetails?: RepairOrderDetail[];
-  repairOrderParts?: RepairOrderPart[];
-  reviews?: RepairOrderReview[];
-  createdAt: string;
-  updatedAt: string;
+  
 }
 
 

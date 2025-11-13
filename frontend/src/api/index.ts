@@ -9,11 +9,24 @@ export { equipments } from './equipments';
 export { repairOrders } from './repair-orders';
 export { reviews } from './reviews';
 export { services } from './services';
+export { spareParts } from './spare-parts';
+export { technicians } from './technicians';
+export { uploadImage, supabase } from './supabase';
 
 // DTOs
 export type { CreateEquipmentDto, UpdateEquipmentDto } from './equipments';
-export type { CreateRepairOrderDto, UpdateRepairOrderDto, UpdateRepairOrderDetailStatusDto } from './repair-orders';
+export type { 
+  CreateRepairOrderDto, 
+  UpdateRepairOrderDto, 
+  UpdateRepairOrderDetailStatusDto,
+  CreateRepairOrderDetailDto,
+  UpdateRepairOrderDetailDto,
+  CreateRepairOrderPartDto,
+  UpdateRepairOrderPartDto
+} from './repair-orders';
 export type { CreateReviewDto } from './reviews';
+export type { SparePart } from './spare-parts';
+export type { Technician } from './technicians';
 
 // Legacy exports for backward compatibility
 import { auth } from './auth';
@@ -21,6 +34,8 @@ import { equipments } from './equipments';
 import { repairOrders } from './repair-orders';
 import { reviews } from './reviews';
 import { services } from './services';
+import { spareParts } from './spare-parts';
+import { technicians } from './technicians';
 
 export const login = auth.login;
 export const register = auth.register;
@@ -33,6 +48,7 @@ export const updateEquipment = equipments.update;
 export const deleteEquipment = equipments.delete;
 
 export const getRepairOrders = repairOrders.getAll;
+export const getRepairOrdersByEvaluator = repairOrders.getByEvaluator;
 export const getRepairOrder = repairOrders.getById;
 export const createRepairOrder = repairOrders.create;
 export const updateRepairOrder = repairOrders.update;
@@ -44,3 +60,4 @@ export const getReviewByRepairOrderId = reviews.findByRepairOrderId;
 export const updateReview = reviews.update;
 
 export const getServices = services.getAll;
+export const getSpareParts = spareParts.getAll;

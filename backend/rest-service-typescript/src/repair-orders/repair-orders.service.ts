@@ -18,6 +18,7 @@ import { firstValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UserRole } from '../users/entities/enums/user-role.enum';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class RepairOrdersService {
@@ -33,6 +34,8 @@ export class RepairOrdersService {
 
     private readonly notificationService: NotificationService,
 
+    private readonly usersService: UsersService,
+
     private readonly httpService: HttpService,
   ) {}
 
@@ -41,10 +44,14 @@ export class RepairOrdersService {
       createRepairOrderDto.equipmentId,
     );
 
+    const evaluatorTechnician =
+      await this.usersService.findTechnicianEvaluator();
+
     // Crear la orden principal
     const repairOrder = this.repairOrderRepository.create({
       ...createRepairOrderDto,
       equipment: equipmentFound,
+      evaluatedBy: evaluatorTechnician,
       finalCost: 0,
     });
     const savedOrderRepair = await this.repairOrderRepository.save(repairOrder);
@@ -57,10 +64,7 @@ export class RepairOrdersService {
         createRepairOrderDto.details,
         savedOrderRepair,
       );
-      totalDetails = details.reduce(
-        (sum, d) => sum + Number(d.subTotal),
-        0,
-      );
+      totalDetails = details.reduce((sum, d) => sum + Number(d.subTotal), 0);
       savedOrderRepair.repairOrderDetails = details;
     }
     // Crear las piezas asociadas
@@ -80,7 +84,10 @@ export class RepairOrdersService {
     savedOrderRepair.finalCost = finalCost;
     const savedOrder = await this.repairOrderRepository.save(savedOrderRepair);
 
-    await this.notificationService.create(savedOrder, OrderRepairStatus.IN_REVIEW);
+    await this.notificationService.create(
+      savedOrder,
+      OrderRepairStatus.IN_REVIEW,
+    );
 
     try {
       await firstValueFrom(
@@ -97,78 +104,73 @@ export class RepairOrdersService {
     return { savedOrder };
   }
 
-  async findAll(user: JwtPayload) {
-    const orders = await this.repairOrderRepository.find({
-      relations: [
-        'equipment.user',
-        'repairOrderDetails',
-        'repairOrderDetails.technician',
-        'repairOrderParts',
-      ],
-    });
-
+  async findAllByRole(user: JwtPayload) {
     switch (user.role) {
       case UserRole.ADMIN: {
-        return orders;
+        return await this.repairOrderRepository.find({
+          relations: ['repairOrderDetails', 'repairOrderParts'],
+        });
       }
 
       case UserRole.TECHNICIAN: {
-        const filteredOrders = orders.filter((order) =>
-          order.repairOrderDetails.some(
-            (detail) => detail.technician.id === user.sub,
-          ),
-        );
-
-        return filteredOrders.map((order) => {
-          order.repairOrderDetails = order.repairOrderDetails.filter(
-            (detail) => detail.technician.id === user.sub,
-          );
-          return order;
+        return await this.repairOrderRepository.find({
+          where: { repairOrderDetails: { technician: { id: user.sub } } },
+          relations: ['repairOrderDetails', 'repairOrderParts'],
         });
       }
       case UserRole.USER: {
-        return orders.filter((order) => order.equipment.user.id === user.sub);
+        return await this.repairOrderRepository.find({
+          where: { equipment: { user: { id: user.sub } } },
+          relations: ['equipment', 'repairOrderDetails', 'repairOrderParts'],
+        });
       }
-
       default:
         throw new ForbiddenException('Invalid user role');
     }
+    
+  }
+
+  async findByEvaluator(technicianId: string) {
+    return await this.repairOrderRepository.find({
+      where: { evaluatedBy: { id: technicianId } },
+      relations: ['repairOrderDetails', 'repairOrderParts', 'equipment'],
+    });
   }
 
   async findOne(id: string, user: JwtPayload) {
-    const repairOrder = await this.repairOrderRepository.findOne({
-      where: { id },
-      relations: [
-        'repairOrderDetails.technician',
-        'equipment.user',
-        'repairOrderParts',
-      ],
-    });
-    if (!repairOrder)
-      throw new NotFoundException(`Repair order with ${id} not found`);
-
     switch (user.role) {
       case UserRole.ADMIN: {
-        return repairOrder;
+        return await this.repairOrderRepository.findOne({
+          where: { id },
+          relations: [
+            'equipment',
+            'repairOrderDetails',
+            'repairOrderParts',
+            'evaluatedBy',
+          ],
+        });
       }
       case UserRole.TECHNICIAN: {
-        const isAssigned = repairOrder.repairOrderDetails.some(
-          (detail) => detail.technician.id === user.sub,
-        );
-        if (!isAssigned) {
-          throw new ForbiddenException(
-            `You do not have access to this repair order.`,
-          );
-        }
-        return repairOrder;
+        const order = await this.repairOrderRepository.findOne({
+          where: [
+            { id, repairOrderDetails: { technician: { id: user.sub } } },
+            { id, evaluatedBy: { id: user.sub } },
+          ],
+          relations: ['repairOrderDetails', 'repairOrderDetails.service', 'repairOrderDetails.technician', 'repairOrderParts', 'repairOrderParts.part', 'equipment'],
+        });
+        return order;
       }
       case UserRole.USER: {
-        if (repairOrder.equipment.user.id !== user.sub) {
+        const order = await this.repairOrderRepository.findOne({
+          where: { id, equipment: { user: { id: user.sub } } },
+          relations: ['equipment', 'repairOrderDetails', 'repairOrderParts'],
+        });
+        if (!order) {
           throw new ForbiddenException(
             `You do not have access to this repair order.`,
           );
         }
-        return repairOrder;
+        return order;
       }
       default:
         throw new ForbiddenException('Invalid user role');
@@ -181,6 +183,8 @@ export class RepairOrdersService {
     user: JwtPayload,
   ) {
     const repairOrder = await this.findOne(id, user);
+    if (!repairOrder)
+      throw new NotFoundException(`Repair order with ID ${id} not found.`);
     const previousStatus = repairOrder.status;
 
     this.updateBasicInfo(repairOrder, updateRepairOrderDto);
@@ -196,6 +200,7 @@ export class RepairOrdersService {
       repairOrder.repairOrderDetails =
         await this.repairOrderDetailsService.updateMany(
           updateRepairOrderDto.details,
+          repairOrder,
         );
     }
 
@@ -204,6 +209,7 @@ export class RepairOrdersService {
       repairOrder.repairOrderParts =
         await this.repairOrderPartsService.updateMany(
           updateRepairOrderDto.parts,
+          repairOrder,
         );
     }
 
@@ -216,6 +222,8 @@ export class RepairOrdersService {
 
   async remove(id: string, user: JwtPayload) {
     const repairOrder = await this.findOne(id, user);
+    if (!repairOrder)
+      throw new NotFoundException(`Repair order with ID ${id} not found.`);
     await this.repairOrderRepository.remove(repairOrder);
   }
 
@@ -280,7 +288,8 @@ export class RepairOrdersService {
     user: JwtPayload,
   ): Promise<number> {
     const orderRepair = await this.findOne(orderId, user);
-
+    if (!orderRepair)
+      throw new NotFoundException(`Repair order with ID ${orderId} not found.`);
     const totalDetails =
       orderRepair.repairOrderDetails?.reduce(
         (sum, d) => sum + Number(d.subTotal),

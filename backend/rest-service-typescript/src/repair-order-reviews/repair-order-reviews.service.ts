@@ -34,6 +34,10 @@ export class RepairOrderReviewsService {
       createRepairOrderReviewDto.repairOrderId,
       user,
     );
+    if (!repairOrder)
+      throw new NotFoundException(
+        `Repair order with ID ${createRepairOrderReviewDto.repairOrderId} not found.`,
+      );
     if (repairOrder.status !== OrderRepairStatus.DELIVERED)
       throw new BadRequestException(
         'Cannot create review before the repair is completed',

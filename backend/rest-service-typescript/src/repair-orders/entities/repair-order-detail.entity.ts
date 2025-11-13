@@ -33,8 +33,8 @@ export class RepairOrderDetail {
   @Column({ type: 'text', nullable: true })
   imageUrl?: string;
 
-  @Column({ type: 'text' })
-  notes: string;
+  @Column({ type: 'text' , nullable: true })
+  notes?: string;
 
   @CreateDateColumn()
   createdAt!: Date;

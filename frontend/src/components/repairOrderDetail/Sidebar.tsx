@@ -1,12 +1,21 @@
-import type React from "react";
+import { useState } from "react";
 import type { RepairOrder } from "../../types";
 import { RepairOrderDiagnosis } from "./RepairOrderDiagnosis";
 import { equipmentTypes } from "../../data/equipmentTypes";
+import { ImageGalleryModal } from "../ui/ImageGalleryModal";
 
 export const SideBar: React.FC<{ order: RepairOrder }> = ({ order }) => {
-    const equipmentType = equipmentTypes.find(
+  const [showGallery, setShowGallery] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  const equipmentType = equipmentTypes.find(
     (e) => e.value === order.equipment.type
   );
+
+  const openGallery = (index: number) => {
+    setSelectedImageIndex(index);
+    setShowGallery(true);
+  };
 
   return (
     <aside className="space-y-6">
@@ -60,8 +69,45 @@ export const SideBar: React.FC<{ order: RepairOrder }> = ({ order }) => {
           </div>
           <h3 className="text-lg font-bold text-gray-900">Problema</h3>
         </div>
-        <p className="text-gray-700 text-sm">{order.problemDescription}</p>
+        <p className="text-gray-700 text-sm mb-4">{order.problemDescription}</p>
+        
+        {/* Problem Images */}
+        {order.imageUrls && order.imageUrls.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <p className="text-xs text-gray-500 mb-3">Imágenes del problema</p>
+            <div className="grid grid-cols-2 gap-2">
+              {order.imageUrls.map((url, index) => (
+                <button
+                  key={index}
+                  onClick={() => openGallery(index)}
+                  className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors cursor-pointer"
+                >
+                  <img
+                    src={url}
+                    alt={`Imagen del problema ${index + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  />
+                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity" />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                      Ver
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Image Gallery Modal */}
+      {showGallery && order.imageUrls && (
+        <ImageGalleryModal
+          images={order.imageUrls}
+          initialIndex={selectedImageIndex}
+          onClose={() => setShowGallery(false)}
+        />
+      )}
 
       {/* Diagnosis */}
       {order.diagnosis && <RepairOrderDiagnosis diagnosis={order.diagnosis} />}
@@ -98,7 +144,7 @@ export const SideBar: React.FC<{ order: RepairOrder }> = ({ order }) => {
               <div>
                 <p className="text-xs text-gray-500">Final</p>
                 <p className="text-2xl font-bold text-green-600">
-                  ${order.finalCost.toFixed(2)}
+                  ${order.finalCost}
                 </p>
               </div>
             )}

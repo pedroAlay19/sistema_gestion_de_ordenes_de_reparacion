@@ -13,6 +13,7 @@ import { RepairOrderDetail } from './repair-order-detail.entity';
 import { RepairOrderPart } from './repair-order-part.entity';
 import { RepairOrderNotification } from './repair-order-notification.entity';
 import { RepairOrderReview } from '../../repair-order-reviews/entities/repair-order-review.entity';
+import { Technician } from '../../users/entities/technician.entity';
 
 @Entity('repair_order')
 export class RepairOrder {
@@ -21,6 +22,9 @@ export class RepairOrder {
 
   @ManyToOne(() => Equipment, (equipment) => equipment.repairOrders)
   equipment!: Equipment;
+
+  @ManyToOne(() => Technician, { nullable: true })
+  evaluatedBy?: Technician;
 
   @Column({ type: 'text' })
   problemDescription!: string;
@@ -43,7 +47,11 @@ export class RepairOrder {
   @Column({ type: 'date', nullable: true })
   warrantyEndDate?: Date;
 
-  @Column({ type: 'enum', enum: OrderRepairStatus, default: OrderRepairStatus.IN_REVIEW })
+  @Column({
+    type: 'enum',
+    enum: OrderRepairStatus,
+    default: OrderRepairStatus.IN_REVIEW,
+  })
   status!: OrderRepairStatus;
 
   @OneToMany(() => RepairOrderDetail, (ts) => ts.repairOrder)
@@ -58,7 +66,7 @@ export class RepairOrder {
   )
   notifications!: RepairOrderNotification[];
 
-  @OneToMany(() => RepairOrderReview, review => review.repairOrder)
+  @OneToMany(() => RepairOrderReview, (review) => review.repairOrder)
   reviews?: RepairOrderReview[];
 
   @CreateDateColumn()

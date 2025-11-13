@@ -1,96 +1,69 @@
-/**
- * TechnicianDashboard Page
- * Panel principal del técnico con estadísticas y carga de trabajo
- */
-
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import {
   WrenchScrewdriverIcon,
   ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
-  ArrowPathIcon
-} from '@heroicons/react/24/outline';
-import { StatCard, Card, ProgressBar } from '../../components/ui';
-import { OrderStatsChart } from '../../components/charts';
-import { useAuth } from '../../hooks/useAuth';
-import { OrderRepairStatus, type RepairOrder } from '../../types';
+} from "@heroicons/react/24/outline";
+import { StatCard, Card, ProgressBar } from "../../components/ui";
+import { OrderStatsChart } from "../../components/charts";
+import { useAuth } from "../../hooks/useAuth";
+import { OrderRepairStatus, type RepairOrder } from "../../types";
 
 export default function TechnicianDashboard() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [orders, setOrders] = useState<RepairOrder[]>([]);
 
   useEffect(() => {
-    loadData();
-    
-    // Auto-refresh cuando la pestaña vuelve a ser visible
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        loadData(true);
+    const loadData = async () => {
+      setLoading(true);
+
+      try {
+        const { repairOrders } = await import("../../api");
+        const data = await repairOrders.getAll();
+        setOrders(data);
+      } catch (error) {
+        console.error("Error cargando datos:", error);
+      } finally {
+        setLoading(false);
       }
     };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Auto-refresh cada 20 segundos
-    const interval = setInterval(() => {
-      loadData(true);
-    }, 20000);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(interval);
-    };
-  }, []);
-
-  const loadData = async (silent = false) => {
-    if (!silent) {
-      setLoading(true);
-    } else {
-      setRefreshing(true);
-    }
-    
-    try {
-      const { repairOrders } = await import('../../api');
-      const data = await repairOrders.getAll();
-      setOrders(data);
-    } catch (error) {
-      console.error('Error cargando datos:', error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
-  
-  const handleRefresh = () => {
     loadData();
-  };
+  }, []);
 
   // Calcular estadísticas desde los datos reales
   const stats = {
     assigned: orders.length,
-    inProgress: orders.filter(o => o.status === OrderRepairStatus.IN_REPAIR).length,
-    completed: orders.filter(o => o.status === OrderRepairStatus.DELIVERED).length,
-    pending: orders.filter(o => o.status === OrderRepairStatus.IN_REVIEW || o.status === OrderRepairStatus.WAITING_APPROVAL).length,
+    inProgress: orders.filter((o) => o.status === OrderRepairStatus.IN_REPAIR)
+      .length,
+    completed: orders.filter((o) => o.status === OrderRepairStatus.DELIVERED)
+      .length,
+    pending: orders.filter(
+      (o) =>
+        o.status === OrderRepairStatus.IN_REVIEW ||
+        o.status === OrderRepairStatus.WAITING_APPROVAL
+    ).length,
   };
 
   const orderStats = [
-    { name: 'Completadas', value: stats.completed, color: '#10b981' },
-    { name: 'En Progreso', value: stats.inProgress, color: '#3b82f6' },
-    { name: 'Pendientes', value: stats.pending, color: '#f59e0b' },
+    { name: "Completadas", value: stats.completed, color: "#10b981" },
+    { name: "En Progreso", value: stats.inProgress, color: "#3b82f6" },
+    { name: "Pendientes", value: stats.pending, color: "#f59e0b" },
   ];
 
-  const overallProgress = stats.assigned > 0 
-    ? Math.round((stats.completed / stats.assigned) * 100) 
-    : 0;
+  const overallProgress =
+    stats.assigned > 0
+      ? Math.round((stats.completed / stats.assigned) * 100)
+      : 0;
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-gray-900 text-xl font-medium">Cargando dashboard...</div>
+        <div className="text-gray-900 text-xl font-medium">
+          Cargando dashboard...
+        </div>
       </div>
     );
   }
@@ -102,20 +75,12 @@ export default function TechnicianDashboard() {
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-1">
             <h1 className="text-3xl font-bold text-gray-900">
-              Bienvenido, {user?.name} 🔧
+              Bienvenido, {user?.name}
             </h1>
-            <button
-              onClick={handleRefresh}
-              disabled={loading}
-              className={`p-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-all ${
-                refreshing ? 'animate-spin' : ''
-              }`}
-              title="Actualizar"
-            >
-              <ArrowPathIcon className="w-5 h-5" />
-            </button>
           </div>
-          <p className="text-gray-600">Dashboard de técnico - Vista general de tu carga de trabajo</p>
+          <p className="text-gray-600">
+            Dashboard de técnico - Vista general de tu carga de trabajo
+          </p>
         </div>
       </div>
 
@@ -155,11 +120,17 @@ export default function TechnicianDashboard() {
             <Card.Header>
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Progreso General</h3>
-                  <p className="text-sm text-gray-600 mt-1">Tu desempeño este mes</p>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Progreso General
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">
+                    Tu desempeño este mes
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-3xl font-bold text-gray-900">{overallProgress}%</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {overallProgress}%
+                  </p>
                   <p className="text-sm text-gray-600">Completado</p>
                 </div>
               </div>
@@ -173,15 +144,21 @@ export default function TechnicianDashboard() {
               />
               <div className="grid grid-cols-3 gap-4 mt-6">
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-green-600">{stats.completed}</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {stats.completed}
+                  </p>
                   <p className="text-sm text-gray-600">Completadas</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-600">{stats.inProgress}</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {stats.inProgress}
+                  </p>
                   <p className="text-sm text-gray-600">En Progreso</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+                  <p className="text-2xl font-bold text-yellow-600">
+                    {stats.pending}
+                  </p>
                   <p className="text-sm text-gray-600">Pendientes</p>
                 </div>
               </div>
@@ -190,13 +167,18 @@ export default function TechnicianDashboard() {
 
           {/* Charts Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <OrderStatsChart data={orderStats} title="Distribución de Órdenes" />
+            <OrderStatsChart
+              data={orderStats}
+              title="Distribución de Órdenes"
+            />
           </div>
 
           {/* Quick Actions */}
           <Card>
             <Card.Header>
-              <h3 className="text-lg font-semibold text-gray-900">Acciones Rápidas</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Acciones Rápidas
+              </h3>
             </Card.Header>
             <Card.Body>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -209,7 +191,9 @@ export default function TechnicianDashboard() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Ver Órdenes</h4>
-                    <p className="text-sm text-gray-600">Gestionar asignaciones</p>
+                    <p className="text-sm text-gray-600">
+                      Gestionar asignaciones
+                    </p>
                   </div>
                 </Link>
 
@@ -222,7 +206,9 @@ export default function TechnicianDashboard() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Pendientes</h4>
-                    <p className="text-sm text-gray-600">{stats.pending} evaluaciones</p>
+                    <p className="text-sm text-gray-600">
+                      {stats.pending} evaluaciones
+                    </p>
                   </div>
                 </Link>
 

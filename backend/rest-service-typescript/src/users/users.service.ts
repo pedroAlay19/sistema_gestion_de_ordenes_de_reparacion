@@ -109,6 +109,13 @@ export class UsersService {
     return user;
   }
 
+  async findTechnicianEvaluator() {
+    const technician = await this.technicianRepository.findOneBy({ isEvaluator: true });
+    if (!technician)
+      throw new NotFoundException(`No evaluator technician found`);
+    return technician;
+  }
+
   async updateUser(id: string, updateUserDto: UpdateUserDto) {
     const userFound = await this.userRepository.findOneBy({ id });
     if (!userFound) throw new NotFoundException(`User with id ${id} not found`);

@@ -1,8 +1,3 @@
-/**
- * TechnicianLayout Component
- * Layout principal para las páginas de técnico
- */
-
 import { Outlet } from 'react-router-dom';
 import TechnicianSidebar from '../components/TechnicianSidebar';
 

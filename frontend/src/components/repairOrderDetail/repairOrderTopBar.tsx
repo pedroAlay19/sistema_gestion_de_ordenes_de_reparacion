@@ -7,11 +7,13 @@ import { useNavigate } from "react-router-dom";
 interface RepairOrderTopBarProps {
   orderId: string;
   orderStatus: OrderRepairStatus;
+  routeBack?: string;
 }
 
 export const RepairOrderTopBar: React.FC<RepairOrderTopBarProps> = ({
   orderId,
   orderStatus,
+  routeBack,
 }: RepairOrderTopBarProps) => {
   const navigate = useNavigate();
 
@@ -19,7 +21,7 @@ export const RepairOrderTopBar: React.FC<RepairOrderTopBarProps> = ({
     <div className="bg-slate-900 border-b border-gray-800 px-8 py-6">
       <div className="max-w-7xl mx-auto">
         <button
-          onClick={() => navigate("/user/repair-orders")}
+          onClick={() => navigate(routeBack || "/user/repair-orders")}
           className="flex items-center gap-2 text-gray-200 hover:text-gray-400 transition-colors mb-4"
         >
           <ArrowLeftIcon className="w-5 h-5" />

@@ -22,7 +22,7 @@ import UserDashboard from './pages/user/UserDashboard.tsx';
 // Technician Pages
 import TechnicianDashboard from './pages/technician/TechnicianDashboard';
 import AssignedOrders from './pages/technician/AssignedOrders';
-import OrderDetailTechnician from './pages/technician/OrderDetailTechnician';
+import TechnicianRepairOrderDetail from './pages/technician/TechnicianRepairOrderDetail';
 
 
 function App() {
@@ -54,7 +54,7 @@ function App() {
           <Route path="/technician" element={<TechnicianLayout />}>
             <Route path="dashboard" element={<TechnicianDashboard />} />
             <Route path="orders" element={<AssignedOrders />} />
-            <Route path="orders/:id" element={<OrderDetailTechnician />} />
+            <Route path="orders/:id" element={<TechnicianRepairOrderDetail />} />
             <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>

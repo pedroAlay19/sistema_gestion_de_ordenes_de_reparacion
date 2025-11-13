@@ -20,7 +20,13 @@ export class RepairOrdersController {
   @Get()
   @Auth(UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.USER)
   findAll(@ActiveUser() user: JwtPayload) {
-    return this.repairOrdersService.findAll(user);
+    return this.repairOrdersService.findAllByRole(user);
+  }
+
+  @Get('evaluator')
+  @Auth(UserRole.TECHNICIAN)
+  findByEvaluator(@ActiveUser() user: JwtPayload) {
+    return this.repairOrdersService.findByEvaluator(user.sub);
   }
 
   @Get(':id')

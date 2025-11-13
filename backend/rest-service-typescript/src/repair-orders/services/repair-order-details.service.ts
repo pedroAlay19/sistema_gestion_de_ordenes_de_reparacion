@@ -36,11 +36,11 @@ export class RepairOrderDetailsService {
         repairOrder,
         service,
         technician,
-        unitPrice: d.unitPrice,
-        discount: d.discount ?? 0,
-        subTotal: d.unitPrice - (d?.discount ?? 0),
+        unitPrice: d?.unitPrice,
+        discount: d?.discount ?? 0,
+        subTotal: (d?.unitPrice ?? 0) - (d?.discount ?? 0),
         status: TicketServiceStatus.PENDING,
-        notes: d.notes,
+        notes: d?.notes,
       });
 
       savedDetails.push(await this.repairOrderDetailRepository.save(detail));
@@ -61,8 +61,8 @@ export class RepairOrderDetailsService {
   }
 
   async update(dto: UpdateRepairOrderDetailDto) {
+    if (!dto.id) throw new NotFoundException('ID is required for update');
     const detail = await this.findOne(dto.id);
-
     // Cambiar el servicio de mantenimiento si llega uno nuevo
     if (dto.serviceId) {
       const service = await this.maintenanceServicesService.findOne(
@@ -88,10 +88,28 @@ export class RepairOrderDetailsService {
     return await this.repairOrderDetailRepository.save(detail);
   }
 
-  async updateMany(dtos: UpdateRepairOrderDetailDto[]) {
-    const updated: RepairOrderDetail[] = []
+  async updateMany(
+    dtos: UpdateRepairOrderDetailDto[],
+    repairOrder?: RepairOrder,
+  ) {
+    const updated: RepairOrderDetail[] = [];
     for (const dto of dtos) {
-        updated.push(await this.update(dto))
+      // Si el DTO tiene ID, es una actualización
+      if (dto.id) {
+        updated.push(await this.update(dto));
+      }
+      // Si no tiene ID, es una creación nueva
+      else if (repairOrder) {
+        const createDto: CreateRepairOrderDetailDto = {
+          serviceId: dto.serviceId!,
+          technicianId: dto.technicianId!,
+          unitPrice: dto.unitPrice!,
+          discount: dto?.discount,
+          notes: dto?.notes,
+        };
+        const created = await this.create([createDto], repairOrder);
+        updated.push(...created);
+      }
     }
     return updated;
   }

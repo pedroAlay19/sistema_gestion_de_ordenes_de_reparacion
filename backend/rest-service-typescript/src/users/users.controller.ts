@@ -40,7 +40,7 @@ export class UsersController {
   }
 
   @Get('technician')
-  @Auth(UserRole.ADMIN)
+  @Auth(UserRole.ADMIN, UserRole.TECHNICIAN)
   findTechnicians() {
     return this.usersService.findTechnicians();
   }

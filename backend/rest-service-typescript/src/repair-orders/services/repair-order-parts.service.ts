@@ -54,6 +54,8 @@ export class RepairOrderPartsService {
   }
 
   async update(dto: UpdateRepairOrderPartDto) {
+    if (!dto.id)
+      throw new NotFoundException('ID is required for updating a repair order part');
     const repairOrderPart = await this.findOne(dto.id);
     const oldPart = repairOrderPart.part;
     const oldQuantity = repairOrderPart.quantity;
@@ -88,11 +90,24 @@ export class RepairOrderPartsService {
     return await this.repairOrderPartsRepository.save(repairOrderPart);
   }
 
-  async updateMany(dtos: UpdateRepairOrderPartDto[]) {
+  async updateMany(dtos: UpdateRepairOrderPartDto[], repairOrder?: RepairOrder) {
     const updatedParts: RepairOrderPart[] = [];
     for (const dto of dtos) {
-      const updated = await this.update(dto);
-      if (updated) updatedParts.push(updated);
+      // Si el DTO tiene ID, es una actualización
+      if (dto.id) {
+        const updated = await this.update(dto);
+        if (updated) updatedParts.push(updated);
+      }
+      // Si no tiene ID, es una creación nueva
+      else if (repairOrder) {
+        const createDto: CreateRepairOrderPartDto = {
+          partId: dto.partId!,
+          quantity: dto.quantity!,
+          imgUrl: dto.imgUrl,
+        };
+        const created = await this.create([createDto], repairOrder);
+        updatedParts.push(...created);
+      }
     }
     return updatedParts;
   }

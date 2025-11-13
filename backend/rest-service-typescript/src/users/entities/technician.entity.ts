@@ -14,6 +14,9 @@ export class Technician extends User {
   @Column({ type: 'int', default: 0})
   experienceYears!: number;
 
+  @Column({ default: false })
+  isEvaluator: boolean
+
   @Column({default: true})
   active!: boolean;
 }

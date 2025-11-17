@@ -1,3 +1,5 @@
+import type { User } from "./repair-order.types";
+
 export enum EquipmentType {
   PC = "PC",
   LAPTOP = "LAPTOP",
@@ -22,6 +24,7 @@ export interface Equipment {
   observations?: string;
   createdAt: string;
   currentStatus: EquipmentStatus;
+  user: User;
 }
 
 export interface EquipmentFormData {

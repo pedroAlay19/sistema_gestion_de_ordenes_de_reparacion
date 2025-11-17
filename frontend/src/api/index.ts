@@ -11,6 +11,8 @@ export { reviews } from './reviews';
 export { services } from './services';
 export { spareParts } from './spare-parts';
 export { technicians } from './technicians';
+export { users } from './users';
+export { admin } from './admin';
 export { uploadImage, supabase } from './supabase';
 
 // DTOs
@@ -25,9 +27,10 @@ export type {
   UpdateRepairOrderPartDto
 } from './repair-orders';
 export type { CreateReviewDto } from './reviews';
-export type { SparePart } from './spare-parts';
 export type { Technician } from './technicians';
+export type { UpdateUserDto } from './users';
 
+import { admin } from './api';
 // Legacy exports for backward compatibility
 import { auth } from './auth';
 import { equipments } from './equipments';
@@ -35,7 +38,6 @@ import { repairOrders } from './repair-orders';
 import { reviews } from './reviews';
 import { services } from './services';
 import { spareParts } from './spare-parts';
-import { technicians } from './technicians';
 
 export const login = auth.login;
 export const register = auth.register;
@@ -57,7 +59,21 @@ export const deleteRepairOrder = repairOrders.delete;
 export const createReview = reviews.create;
 export const getBestsReviews = reviews.getBest;
 export const getReviewByRepairOrderId = reviews.findByRepairOrderId;
+export const getReviewsByRole = reviews.findByRole;
 export const updateReview = reviews.update;
 
 export const getServices = services.getAll;
 export const getSpareParts = spareParts.getAll;
+
+// Admin exports
+export const getAllClients = admin.getAllClients;
+export const deleteClient = admin.deleteClient;
+
+export const createTechnician = admin.createTechnician;
+export const getAllTechnicians = admin.getAllTechnicians;
+export const updateTechnician = admin.updateTechnician;
+export const deleteTechnician = admin.deleteTechnician;
+
+export const getAllReviews = admin.getAllReviews;
+export const getAllSpareParts = admin.getAllSpareParts;
+export * from './dashboard-granular';

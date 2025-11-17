@@ -1,56 +1,33 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { getRepairOrders } from '../../api/api';
-import type { RepairOrder } from '../../types/repair-order.types';
-
-type Review = {
-  orderId: string;
-  equipmentName: string;
-  status: string;
-  completedAt: string;
-  hasReview: boolean;
-  rating?: number;
-  comment?: string;
-};
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { getReviewsByRole } from "../../api/api";
+import type { Review } from "../../types/review.types";
+import {
+  CalendarDaysIcon,
+  PencilSquareIcon,
+  StarIcon,
+  TrophyIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Reviews() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
+    const loadReviews = async () => {
+      try {
+        const reviews = await getReviewsByRole();
+        setReviews(reviews);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
     loadReviews();
   }, []);
-
-  const loadReviews = async () => {
-    try {
-      const orders = await getRepairOrders();
-      
-      // Filtrar órdenes completadas o entregadas
-      const completedOrders = orders.filter(
-        (order: RepairOrder) => order.status === 'DELIVERED'
-      );
-
-      const reviewData: Review[] = completedOrders.map((order: RepairOrder) => ({
-        orderId: order.id,
-        equipmentName: order.equipment.name,
-        status: order.status,
-        completedAt: order.updatedAt,
-        hasReview: false, // TODO: Check if review exists when backend implements it
-        rating: undefined,
-        comment: undefined,
-      }));
-
-      setReviews(reviewData);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const averageRating = reviews
-    .filter(r => r.hasReview && r.rating)
-    .reduce((acc, r) => acc + (r.rating || 0), 0) / reviews.filter(r => r.hasReview).length || 0;
 
   if (loading) {
     return (
@@ -63,176 +40,146 @@ export default function Reviews() {
   return (
     <>
       {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-slate-900 border-b border-gray-800 px-8 py-6">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">Mis Reseñas</h1>
-          <p className="text-gray-600">Historial de servicios completados y tus valoraciones</p>
+          <h1 className="text-3xl font-bold text-white mb-1">Mis Reseñas</h1>
+          <p className="text-gray-400">Valoraciones de servicios completados</p>
         </div>
       </div>
 
-      <div className="p-8">
-        <div className="max-w-5xl mx-auto">
-          {/* Average Rating Card */}
-          {reviews.filter(r => r.hasReview).length > 0 && (
-            <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-2xl p-8 mb-8 text-white">
-              <div className="flex items-center gap-8">
-                <div className="text-center">
-                  <div className="text-6xl font-bold mb-2">{averageRating.toFixed(1)}</div>
-                  <div className="flex gap-1 mb-2">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <span
-                        key={star}
-                        className={`text-2xl ${
-                          star <= Math.round(averageRating) ? 'text-yellow-400' : 'text-gray-600'
-                        }`}
-                      >
-                        ⭐
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-white/70">Promedio General</p>
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold mb-2">Tu Satisfacción</h3>
-                  <p className="text-white/80 mb-4">
-                    Has dejado {reviews.filter(r => r.hasReview).length} reseñas de {reviews.length} servicios completados
-                  </p>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 rounded-lg p-3">
-                      <div className="text-2xl font-bold">{reviews.filter(r => r.hasReview).length}</div>
-                      <div className="text-sm text-white/70">Reseñas</div>
-                    </div>
-                    <div className="bg-white/10 rounded-lg p-3">
-                      <div className="text-2xl font-bold">{reviews.length - reviews.filter(r => r.hasReview).length}</div>
-                      <div className="text-sm text-white/70">Pendientes</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
+      <div className="p-8 bg-linear-to-br from-gray-50 to-gray-100 min-h-[calc(100vh-120px)]">
+        <div className="max-w-6xl mx-auto">
           {/* Reviews List */}
           {reviews.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center shadow-lg">
+              <div className="w-24 h-24 bg-linear-to-br from-yellow-100 to-yellow-200 rounded-full flex items-center justify-center mx-auto mb-6">
                 <span className="text-5xl">⭐</span>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">No hay servicios completados</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                No tienes reseñas aún
+              </h3>
               <p className="text-gray-600 mb-8">
-                Cuando completes servicios de reparación, podrás dejar tu valoración aquí
+                Solicita servicios de reparación y deja tu valoración
               </p>
               <Link
                 to="/user/repair-orders/new"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-md"
               >
                 Solicitar Reparación
               </Link>
             </div>
           ) : (
-            <div className="space-y-4">
-              {reviews.map((review) => (
-                <div
-                  key={review.orderId}
-                  className="bg-white rounded-2xl border-2 border-gray-200 overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="p-6">
-                    <div className="flex items-start justify-between gap-4 mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {review.equipmentName}
-                          </h3>
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium ${
-                              review.status === 'CLOSED'
-                                ? 'bg-green-100 text-green-800 border border-green-200'
-                                : 'bg-purple-100 text-purple-800 border border-purple-200'
-                            }`}
-                          >
-                            {review.status === 'CLOSED' ? '✅ Entregado' : '🟣 Listo'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          Completado el{' '}
-                          {new Date(review.completedAt).toLocaleDateString('es-ES', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Order Number */}
-                      <Link
-                        to={`/user/repair-orders/${review.orderId}`}
-                        className="text-sm font-mono text-gray-600 hover:text-black transition-colors"
-                      >
-                        #ORD-{review.orderId.padStart(5, '0')}
-                      </Link>
+            <>
+              {/* Stats Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <PencilSquareIcon className="text-2xl text-blue-500" />
                     </div>
-
-                    {/* Review Content */}
-                    {review.hasReview ? (
-                      <div className="bg-gray-50 rounded-xl p-5 border border-gray-200">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="flex gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <span
-                                key={star}
-                                className={`text-xl ${
-                                  star <= (review.rating || 0) ? 'text-yellow-400' : 'text-gray-300'
-                                }`}
-                              >
-                                ⭐
-                              </span>
-                            ))}
-                          </div>
-                          <span className="text-sm font-medium text-gray-700">
-                            {review.rating}/5 estrellas
-                          </span>
-                        </div>
-                        {review.comment && (
-                          <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-blue-50 rounded-xl p-5 border-2 border-blue-200">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                              <span className="text-xl">✍️</span>
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900 mb-1">
-                                Deja tu valoración
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                Comparte tu experiencia con este servicio
-                              </p>
-                            </div>
-                          </div>
-                          <Link
-                            to={`/user/repair-orders/${review.orderId}`}
-                            className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors whitespace-nowrap"
-                          >
-                            Dejar Reseña
-                          </Link>
-                        </div>
-                      </div>
-                    )}
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Total Reseñas
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {reviews.length}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                      <StarIcon className="text-2xl text-yellow-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Calificación Promedio
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {(
+                          reviews.reduce((acc, r) => acc + r.rating, 0) /
+                          reviews.length
+                        ).toFixed(1)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                      <TrophyIcon className="text-2xl text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">
+                        Mejor Calificación
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {Math.max(...reviews.map((r) => r.rating))}.0
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reviews Grid */}
+              <div className="space-y-4">
+                {reviews.map((review) => (
+                  <div
+                    key={review.id}
+                    className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-lg transition-all duration-300 hover:border-blue-300"
+                  >
+                    <div className="flex items-start gap-6">
+                      {/* Content */}
+                      <div className="flex-1">
+                        {/* Stars Row */}
+                        <div className="flex items-center gap-1 mb-3">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={`text-2xl ${
+                                star <= review.rating
+                                  ? "text-yellow-400"
+                                  : "text-gray-300"
+                              }`}
+                            >
+                              ★
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Comment */}
+                        <div className="bg-gray-50 rounded-lg p-4 mb-4 border-l-4 border-blue-400">
+                          <p className="text-gray-700 leading-relaxed text-base italic">
+                            "{review.comment}"
+                          </p>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-sm text-gray-500">
+                            <CalendarDaysIcon className="w-5 h-5" />
+                            {new Date(review.createdAt).toLocaleDateString(
+                              "es-ES",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
+                          </div>
+                          <span className="px-3 py-1 bg-gray-100 text-gray-600 text-xs font-mono rounded-full">
+                            #{review.id.slice(0, 8)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
       </div>

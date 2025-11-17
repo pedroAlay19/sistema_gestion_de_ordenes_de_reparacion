@@ -14,11 +14,10 @@ import { RepairOrderPartsService } from './services/repair-order-parts.service';
 import { NotificationService } from './services/notification.service';
 import { OrderRepairStatus } from './entities/enum/order-repair.enum';
 import { UpdateRepairOrderDto } from './dto/update-repair-order.dto';
-import { firstValueFrom } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UserRole } from '../users/entities/enums/user-role.enum';
 import { UsersService } from '../users/users.service';
+import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 
 @Injectable()
 export class RepairOrdersService {
@@ -36,7 +35,7 @@ export class RepairOrdersService {
 
     private readonly usersService: UsersService,
 
-    private readonly httpService: HttpService,
+    private readonly wsNotificationService: WebSocketNotificationService,
   ) {}
 
   async create(createRepairOrderDto: CreateRepairOrderDto) {
@@ -89,18 +88,12 @@ export class RepairOrdersService {
       OrderRepairStatus.IN_REVIEW,
     );
 
-    try {
-      await firstValueFrom(
-        this.httpService.post('http://localhost:8081/notify', {
-          type: 'repair_order',
-          action: 'created',
-          id: savedOrder.id,
-        }),
-      );
-      console.log('Notificación enviada al WebSocket Go');
-    } catch (error) {
-      console.error('Error notificando al WebSocket Go:', error.message);
-    }
+    // Notificar creación de orden - Actualiza: overview, by-status, recent, counts
+    await this.wsNotificationService.notifyDashboardUpdate(
+      'REPAIR_ORDER_CREATED',
+      savedOrder.id,
+    );
+
     return { savedOrder };
   }
 
@@ -108,7 +101,13 @@ export class RepairOrdersService {
     switch (user.role) {
       case UserRole.ADMIN: {
         return await this.repairOrderRepository.find({
-          relations: ['repairOrderDetails', 'repairOrderParts'],
+          relations: [
+            'repairOrderDetails',
+            'repairOrderParts',
+            'equipment.user',
+            'evaluatedBy',
+          ],
+          order: { createdAt: 'DESC' },
         });
       }
 
@@ -127,7 +126,6 @@ export class RepairOrdersService {
       default:
         throw new ForbiddenException('Invalid user role');
     }
-    
   }
 
   async findByEvaluator(technicianId: string) {
@@ -156,7 +154,14 @@ export class RepairOrdersService {
             { id, repairOrderDetails: { technician: { id: user.sub } } },
             { id, evaluatedBy: { id: user.sub } },
           ],
-          relations: ['repairOrderDetails', 'repairOrderDetails.service', 'repairOrderDetails.technician', 'repairOrderParts', 'repairOrderParts.part', 'equipment'],
+          relations: [
+            'repairOrderDetails',
+            'repairOrderDetails.service',
+            'repairOrderDetails.technician',
+            'repairOrderParts',
+            'repairOrderParts.part',
+            'equipment',
+          ],
         });
         return order;
       }
@@ -246,20 +251,6 @@ export class RepairOrdersService {
     if (!newStatus || newStatus === previousStatus) return;
     repairOrder.status = newStatus;
     await this.notificationService.create(repairOrder, newStatus);
-
-    try {
-      await firstValueFrom(
-        this.httpService.post('http://localhost:8081/notify', {
-          type: 'repair_order_status',
-          action: 'updated',
-          id: repairOrder.id,
-          newStatus,
-        }),
-      );
-      console.log(`Notificación WS enviada: estado cambiado a ${newStatus}`);
-    } catch (error) {
-      console.error('Error notificando al WebSocket Go:', error.message);
-    }
   }
 
   private updateWarrantyDates(
@@ -304,5 +295,171 @@ export class RepairOrdersService {
 
     const finalCost = totalDetails + totalParts;
     return finalCost;
+  }
+
+
+  async getOrdersOverview() {
+    const [totalOrders, activeOrders, rejectedOrders, completedOrders] =
+      await Promise.all([
+        this.repairOrderRepository.count(),
+        this.repairOrderRepository.count({
+          where: [
+            { status: OrderRepairStatus.IN_REVIEW },
+            { status: OrderRepairStatus.WAITING_APPROVAL },
+            { status: OrderRepairStatus.IN_REPAIR },
+            { status: OrderRepairStatus.WAITING_PARTS },
+            { status: OrderRepairStatus.READY },
+          ],
+        }),
+        this.repairOrderRepository.count({
+          where: { status: OrderRepairStatus.REJECTED },
+        }),
+        this.repairOrderRepository.count({
+          where: { status: OrderRepairStatus.DELIVERED },
+        }),
+      ]);
+
+    return {
+      totalOrders,
+      activeOrders,
+      rejectedOrders,
+      completedOrders,
+    };
+  }
+
+  async getRevenueStats() {
+    const completedOrders = await this.repairOrderRepository.find({
+      where: { status: OrderRepairStatus.DELIVERED },
+      select: ['finalCost'],
+    });
+
+    const totalRevenue = completedOrders.reduce(
+      (sum, o) => sum + Number(o.finalCost || 0),
+      0,
+    );
+
+    const avgCost =
+      completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
+
+    return {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      averageCost: Math.round(avgCost * 100) / 100,
+      completedOrdersCount: completedOrders.length,
+    };
+  }
+
+  async getOrdersByStatus() {
+    const statusCounts = await Promise.all(
+      Object.values(OrderRepairStatus).map(async (status) => ({
+        status,
+        count: await this.repairOrderRepository.count({ where: { status } }),
+      })),
+    );
+
+    return { ordersByStatus: statusCounts };
+  }
+
+  async getRecentOrders(limit: number = 10) {
+    const orders = await this.repairOrderRepository.find({
+      relations: ['equipment', 'equipment.user'],
+      order: { createdAt: 'DESC' },
+      take: limit,
+      select: {
+        id: true,
+        problemDescription: true,
+        status: true,
+        createdAt: true,
+        finalCost: true,
+        equipment: {
+          name: true,
+          user: {
+            name: true,
+          },
+        },
+      },
+    });
+
+    const recentOrders = orders.map((o) => ({
+      id: o.id,
+      problemDescription: o.problemDescription,
+      status: o.status,
+      clientName: o.equipment?.user?.name,
+      equipmentName: o.equipment?.name,
+      createdAt: o.createdAt,
+      finalCost: o.finalCost,
+    }));
+
+    return { recentOrders };
+  }
+
+
+  async getTopServices(limit: number = 5) {
+    const orders = await this.repairOrderRepository.find({
+      relations: ['repairOrderDetails', 'repairOrderDetails.service'],
+      select: {
+        id: true,
+        repairOrderDetails: {
+          subTotal: true,
+          service: {
+            serviceName: true,
+          },
+        },
+      },
+    });
+
+    const serviceStats: Record<string, { count: number; revenue: number }> = {};
+    orders.forEach((o) => {
+      o.repairOrderDetails?.forEach((detail) => {
+        const serviceName = detail.service?.serviceName || 'Unknown';
+        if (!serviceStats[serviceName]) {
+          serviceStats[serviceName] = { count: 0, revenue: 0 };
+        }
+        serviceStats[serviceName].count++;
+        serviceStats[serviceName].revenue += Number(detail.subTotal || 0);
+      });
+    });
+
+    const topServices = Object.entries(serviceStats)
+      .map(([name, stats]) => ({
+        serviceName: name,
+        count: stats.count,
+        revenue: Math.round(stats.revenue * 100) / 100,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, limit);
+
+    return { topServices };
+  }
+
+  async getTotalOrdersCount() {
+    const count = await this.repairOrderRepository.count();
+    return { count };
+  }
+
+  async getActiveOrdersCount() {
+    const count = await this.repairOrderRepository.count({
+      where: [
+        { status: OrderRepairStatus.IN_REVIEW },
+        { status: OrderRepairStatus.WAITING_APPROVAL },
+        { status: OrderRepairStatus.IN_REPAIR },
+        { status: OrderRepairStatus.WAITING_PARTS },
+        { status: OrderRepairStatus.READY },
+      ],
+    });
+    return { count };
+  }
+
+  async getTotalRevenue() {
+    const completedOrders = await this.repairOrderRepository.find({
+      where: { status: OrderRepairStatus.DELIVERED },
+      select: ['finalCost'],
+    });
+
+    const total = completedOrders.reduce(
+      (sum, o) => sum + Number(o.finalCost || 0),
+      0,
+    );
+
+    return { revenue: Math.round(total * 100) / 100 };
   }
 }

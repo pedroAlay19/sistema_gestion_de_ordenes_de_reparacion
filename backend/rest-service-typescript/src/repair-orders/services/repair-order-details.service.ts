@@ -63,6 +63,7 @@ export class RepairOrderDetailsService {
   async update(dto: UpdateRepairOrderDetailDto) {
     if (!dto.id) throw new NotFoundException('ID is required for update');
     const detail = await this.findOne(dto.id);
+    
     // Cambiar el servicio de mantenimiento si llega uno nuevo
     if (dto.serviceId) {
       const service = await this.maintenanceServicesService.findOne(
@@ -82,6 +83,7 @@ export class RepairOrderDetailsService {
     if (dto.discount !== undefined) detail.discount = dto.discount;
     if (dto.notes !== undefined) detail.notes = dto.notes;
     if (dto.imageUrl !== undefined) detail.imageUrl = dto.imageUrl;
+    if (dto.status !== undefined) detail.status = dto.status;
 
     // Recalcular subtotal
     detail.subTotal = Number(detail.unitPrice) - Number(detail.discount ?? 0);

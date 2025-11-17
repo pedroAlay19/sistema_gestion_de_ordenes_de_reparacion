@@ -7,9 +7,9 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { StatCard, Card, ProgressBar } from "../../components/ui";
-import { OrderStatsChart } from "../../components/charts";
 import { useAuth } from "../../hooks/useAuth";
 import { OrderRepairStatus, type RepairOrder } from "../../types";
+import { getRepairOrdersByEvaluator } from "../../api";
 
 export default function TechnicianDashboard() {
   const { user } = useAuth();
@@ -21,8 +21,7 @@ export default function TechnicianDashboard() {
       setLoading(true);
 
       try {
-        const { repairOrders } = await import("../../api");
-        const data = await repairOrders.getAll();
+        const data = await getRepairOrdersByEvaluator();
         setOrders(data);
       } catch (error) {
         console.error("Error cargando datos:", error);
@@ -35,23 +34,14 @@ export default function TechnicianDashboard() {
 
   // Calcular estadísticas desde los datos reales
   const stats = {
-    assigned: orders.length,
-    inProgress: orders.filter((o) => o.status === OrderRepairStatus.IN_REPAIR)
+    assigned: orders.filter((o) => o.status !== OrderRepairStatus.REJECTED).length,
+    inProgress: orders.filter((o) => o.status !== OrderRepairStatus.DELIVERED && o.status !== OrderRepairStatus.REJECTED)
       .length,
     completed: orders.filter((o) => o.status === OrderRepairStatus.DELIVERED)
       .length,
-    pending: orders.filter(
-      (o) =>
-        o.status === OrderRepairStatus.IN_REVIEW ||
-        o.status === OrderRepairStatus.WAITING_APPROVAL
-    ).length,
+    pending: orders.filter((o) => o.status === OrderRepairStatus.IN_REVIEW)
+      .length,
   };
-
-  const orderStats = [
-    { name: "Completadas", value: stats.completed, color: "#10b981" },
-    { name: "En Progreso", value: stats.inProgress, color: "#3b82f6" },
-    { name: "Pendientes", value: stats.pending, color: "#f59e0b" },
-  ];
 
   const overallProgress =
     stats.assigned > 0
@@ -71,14 +61,14 @@ export default function TechnicianDashboard() {
   return (
     <>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-slate-900 border-b border-gray-800 px-8 py-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-white">
               Bienvenido, {user?.name}
             </h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-200">
             Dashboard de técnico - Vista general de tu carga de trabajo
           </p>
         </div>
@@ -124,7 +114,7 @@ export default function TechnicianDashboard() {
                     Progreso General
                   </h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    Tu desempeño este mes
+                    Tu desempeño
                   </p>
                 </div>
                 <div className="text-right">
@@ -159,19 +149,12 @@ export default function TechnicianDashboard() {
                   <p className="text-2xl font-bold text-yellow-600">
                     {stats.pending}
                   </p>
-                  <p className="text-sm text-gray-600">Pendientes</p>
+                  <p className="text-sm text-gray-600">Pendientes por revisar</p>
                 </div>
               </div>
             </Card.Body>
           </Card>
 
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <OrderStatsChart
-              data={orderStats}
-              title="Distribución de Órdenes"
-            />
-          </div>
 
           {/* Quick Actions */}
           <Card>
@@ -207,7 +190,7 @@ export default function TechnicianDashboard() {
                   <div>
                     <h4 className="font-semibold text-gray-900">Pendientes</h4>
                     <p className="text-sm text-gray-600">
-                      {stats.pending} evaluaciones
+                      {stats.pending} evaluaciones pendientes
                     </p>
                   </div>
                 </Link>
@@ -221,7 +204,7 @@ export default function TechnicianDashboard() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-gray-900">Mi Perfil</h4>
-                    <p className="text-sm text-gray-600">Ver estadísticas</p>
+                    <p className="text-sm text-gray-600">Ver mi perfil</p>
                   </div>
                 </Link>
               </div>

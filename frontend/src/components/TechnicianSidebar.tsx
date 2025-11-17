@@ -28,13 +28,13 @@ export default function TechnicianSidebar() {
   ];
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-20 bg-linear-to-b from-gray-900 to-gray-800 flex flex-col items-center py-8 z-50 shadow-xl">
+    <div className="fixed left-0 top-0 h-screen w-20 bg-linear-to-b bg-black flex flex-col items-center py-8 z-50 shadow-xl">
       {/* Logo */}
-      <Link to="/" className="mb-12">
+      <div className="mb-12">
         <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
           <WrenchScrewdriverIcon className="w-7 h-7 text-white" />
         </div>
-      </Link>
+      </div>
 
       {/* Menu Items */}
       <nav className="flex-1 flex flex-col gap-4">

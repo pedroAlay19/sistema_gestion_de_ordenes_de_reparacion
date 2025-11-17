@@ -1,10 +1,6 @@
 import strawberry
-from clients.client_resolvers import  ClientsQueries
-from technicians_queries.technicians_queries_resolvers import TechniciansQueries
-from dashboard_queries.dashboard_queries_resolvers import DashboardQueries
-
-@strawberry.type
-class Query(ClientsQueries, TechniciansQueries, DashboardQueries):
+from .admin_queries.admin_resolvers import AdminQueries
+class Query(AdminQueries):
     pass
 
 

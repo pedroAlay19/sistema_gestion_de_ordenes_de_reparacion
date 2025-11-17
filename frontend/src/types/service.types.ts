@@ -1,8 +1,3 @@
-/**
- * Service Types
- * Tipos relacionados con servicios de reparación ofrecidos
- */
-
 export enum ServiceType {
   REPAIR = "REPAIR",
   MAINTENANCE = "MAINTENANCE",
@@ -18,6 +13,30 @@ export interface Service {
   estimatedTimeMinutes?: number;
   requiresParts?: boolean;
   type: ServiceType;
+  imageUrls?: string[];
+  active?: boolean;
+  notes?: string;
+}
+
+export interface CreateMaintenanceServiceDto {
+  serviceName: string;
+  description: string;
+  basePrice: number;
+  estimatedTimeMinutes?: number;
+  requiresParts?: boolean;
+  type: ServiceType;
+  imageUrls?: string[];
+  active?: boolean;
+  notes?: string;
+}
+
+export interface UpdateMaintenanceServiceDto {
+  serviceName?: string;
+  description?: string;
+  basePrice?: number;
+  estimatedTimeMinutes?: number;
+  requiresParts?: boolean;
+  type?: ServiceType;
   imageUrls?: string[];
   active?: boolean;
   notes?: string;

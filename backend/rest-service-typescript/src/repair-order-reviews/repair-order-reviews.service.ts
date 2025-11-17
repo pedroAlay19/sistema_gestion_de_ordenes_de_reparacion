@@ -10,10 +10,9 @@ import { RepairOrderReview } from './entities/repair-order-review.entity';
 import { MoreThanOrEqual, Repository } from 'typeorm';
 import { RepairOrdersService } from 'src/repair-orders/repair-orders.service';
 import { OrderRepairStatus } from 'src/repair-orders/entities/enum/order-repair.enum';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UserRole } from 'src/users/entities/enums/user-role.enum';
+import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 
 @Injectable()
 export class RepairOrderReviewsService {
@@ -23,7 +22,7 @@ export class RepairOrderReviewsService {
 
     private readonly repairOrdersService: RepairOrdersService,
 
-    private readonly http: HttpService,
+    private readonly wsNotificationService: WebSocketNotificationService,
   ) {}
 
   async create(
@@ -57,18 +56,9 @@ export class RepairOrderReviewsService {
     });
     const saveReview = await this.repairOrderReviewRepository.save(review);
 
-    try {
-      await firstValueFrom(
-        this.http.post('http://localhost:8081/notify', {
-          type: 'review',
-          action: 'created',
-          id: saveReview.id,
-        }),
-      );
-      console.log('Notification sent successfully');
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
+    // Las reviews no están actualmente en las estadísticas del dashboard admin
+    // Si se agregan métricas de reviews, descomentar:
+    // await this.wsNotificationService.notifyDashboardUpdate('REVIEW_CREATED', saveReview.id);
 
     return saveReview;
   }

@@ -39,6 +39,6 @@ export class AuthService {
   }
 
   getProfile(id: string) {
-    return this.usersService.getProfile(id);
+    return this.usersService.findOne(id);
   }
 }

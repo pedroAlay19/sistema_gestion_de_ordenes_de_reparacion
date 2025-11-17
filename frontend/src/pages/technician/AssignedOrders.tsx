@@ -57,8 +57,7 @@ export default function AssignedOrders() {
         (order) =>
           order.id.toLowerCase().includes(term) ||
           order.equipment.name.toLowerCase().includes(term) ||
-          order.equipment.brand.toLowerCase().includes(term) ||
-          order.equipment.user?.name.toLowerCase().includes(term)
+          order.equipment.brand.toLowerCase().includes(term)
       );
     }
 
@@ -84,14 +83,14 @@ export default function AssignedOrders() {
   return (
     <>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-slate-900 border-b border-gray-800 px-8 py-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-white">
               Órdenes Asignadas
             </h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-200">
             Órdenes de reparación asignadas
           </p>
         </div>
@@ -107,7 +106,7 @@ export default function AssignedOrders() {
                 <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Buscar por orden, equipo, cliente..."
+                  placeholder="Buscar por orden, equipo, ..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

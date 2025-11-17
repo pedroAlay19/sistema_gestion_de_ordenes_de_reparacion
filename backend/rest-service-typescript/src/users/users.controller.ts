@@ -34,7 +34,7 @@ export class UsersController {
   }
 
   @Get()
-  @Auth(UserRole.ADMIN)
+  @Auth(UserRole.ADMIN) 
   findUsers() {
     return this.usersService.findUsers();
   }
@@ -43,6 +43,36 @@ export class UsersController {
   @Auth(UserRole.ADMIN, UserRole.TECHNICIAN)
   findTechnicians() {
     return this.usersService.findTechnicians();
+  }
+
+  @Get('stats/overview')
+  getUsersOverview() {
+    return this.usersService.getUsersOverview();
+  }
+
+  @Get('stats/top-clients')
+  getTopClients() {
+    return this.usersService.getTopClients(5);
+  }
+
+  @Get('stats/top-technicians')
+  getTopTechnicians() {
+    return this.usersService.getTopTechnicians(5);
+  }
+
+  @Get('stats/count/clients')
+  getTotalClientsCount() {
+    return this.usersService.getTotalClientsCount();
+  }
+
+  @Get('stats/count/technicians')
+  getTotalTechniciansCount() {
+    return this.usersService.getTotalTechniciansCount();
+  }
+
+  @Get('stats/count/active-technicians')
+  getActiveTechniciansCount() {
+    return this.usersService.getActiveTechniciansCount();
   }
 
   @Get(':id')

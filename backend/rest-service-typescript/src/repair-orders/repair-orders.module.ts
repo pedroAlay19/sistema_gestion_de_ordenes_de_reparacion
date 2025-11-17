@@ -14,13 +14,14 @@ import { NotificationService } from './services/notification.service';
 import { SparePartsModule } from 'src/spare-parts/spare-parts.module';
 import { RepairOrderNotification } from './entities/repair-order-notification.entity';
 import { HttpModule } from '@nestjs/axios';
+import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 
 @Module({
   imports:[
     TypeOrmModule.forFeature([RepairOrderDetail, RepairOrderPart, RepairOrder, RepairOrderNotification]),
     EquipmentsModule, MaintenanceServicesModule, UsersModule, SparePartsModule, HttpModule],
   controllers: [RepairOrdersController],
-  providers: [RepairOrdersService, RepairOrderDetailsService, RepairOrderPartsService, NotificationService],
+  providers: [RepairOrdersService, RepairOrderDetailsService, RepairOrderPartsService, NotificationService, WebSocketNotificationService],
   exports: [RepairOrdersService]
 })
 export class RepairOrdersModule {}

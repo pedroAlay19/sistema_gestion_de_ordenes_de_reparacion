@@ -109,6 +109,7 @@ export interface RepairOrder {
   diagnosis?: string;
   problemDescription: string;
   status: OrderRepairStatus;
+  evaluatedBy?: User;
   estimatedCost?: number;
   finalCost?: number;
   imageUrls?: string[];

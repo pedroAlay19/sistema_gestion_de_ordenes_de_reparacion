@@ -1,6 +1,7 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateRepairOrderDetailDto } from './create-repair-order-detail.dto';
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { TicketServiceStatus } from '../../entities/enum/order-repair.enum';
 
 export class UpdateRepairOrderDetailDto extends PartialType(CreateRepairOrderDetailDto) {
   @IsOptional()
@@ -10,4 +11,8 @@ export class UpdateRepairOrderDetailDto extends PartialType(CreateRepairOrderDet
   @IsOptional()
   @IsUUID()
   id?: string;
+
+  @IsOptional()
+  @IsEnum(TicketServiceStatus)
+  status?: TicketServiceStatus;
 }

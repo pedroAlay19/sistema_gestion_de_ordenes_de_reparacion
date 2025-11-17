@@ -29,6 +29,80 @@ export class RepairOrdersController {
     return this.repairOrdersService.findByEvaluator(user.sub);
   }
 
+  // ===== GRANULAR ANALYTICS ENDPOINTS =====
+
+  /**
+   * Get orders overview (totals only)
+   * GET /repair-orders/stats/overview
+   */
+  @Get('stats/overview')
+  getOrdersOverview() {
+    return this.repairOrdersService.getOrdersOverview();
+  }
+
+  /**
+   * Get revenue statistics
+   * GET /repair-orders/stats/revenue
+   */
+  @Get('stats/revenue')
+  getRevenueStats() {
+    return this.repairOrdersService.getRevenueStats();
+  }
+
+  /**
+   * Get orders by status
+   * GET /repair-orders/stats/by-status
+   */
+  @Get('stats/by-status')
+  getOrdersByStatus() {
+    return this.repairOrdersService.getOrdersByStatus();
+  }
+
+  /**
+   * Get recent orders
+   * GET /repair-orders/stats/recent?limit=10
+   */
+  @Get('stats/recent')
+  getRecentOrders() {
+    return this.repairOrdersService.getRecentOrders(10);
+  }
+
+  /**
+   * Get top services
+   * GET /repair-orders/stats/top-services?limit=5
+   */
+  @Get('stats/top-services')
+  getTopServices() {
+    return this.repairOrdersService.getTopServices(5);
+  }
+
+  /**
+   * Get total orders count (single number)
+   * GET /repair-orders/stats/count/total
+   */
+  @Get('stats/count/total')
+  getTotalOrdersCount() {
+    return this.repairOrdersService.getTotalOrdersCount();
+  }
+
+  /**
+   * Get active orders count (single number)
+   * GET /repair-orders/stats/count/active
+   */
+  @Get('stats/count/active')
+  getActiveOrdersCount() {
+    return this.repairOrdersService.getActiveOrdersCount();
+  }
+
+  /**
+   * Get total revenue (single number)
+   * GET /repair-orders/stats/revenue/total
+   */
+  @Get('stats/revenue/total')
+  getTotalRevenue() {
+    return this.repairOrdersService.getTotalRevenue();
+  }
+
   @Get(':id')
   @Auth(UserRole.TECHNICIAN, UserRole.ADMIN, UserRole.USER)
   findOne(@Param('id') id: string, @ActiveUser() user: JwtPayload) {

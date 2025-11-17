@@ -4,8 +4,7 @@ import { UpdateMaintenanceServiceDto } from './dto/update-maintenance-service.dt
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MaintenanceService } from './entities/maintenance-service.entity';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 
 @Injectable()
 export class MaintenanceServicesService {
@@ -13,7 +12,7 @@ export class MaintenanceServicesService {
     @InjectRepository(MaintenanceService)
     private readonly serviceRepository: Repository<MaintenanceService>,
 
-    private readonly http: HttpService,
+    private readonly wsNotificationService: WebSocketNotificationService,
   ) {}
 
   async create(createServiceDto: CreateMaintenanceServiceDto) {
@@ -28,19 +27,10 @@ export class MaintenanceServicesService {
     }
     const service = this.serviceRepository.create(createServiceDto);
     const resul = await this.serviceRepository.save(service);
-
-    try {
-      await firstValueFrom(
-        this.http.post('http://localhost:8081/notify', {
-          type: 'mantenance_service_created',
-          action: 'create',
-          id: resul.id,
-        }),
-      );
-      console.log('Notification sent successfully');
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
+    
+    // Crear un servicio no afecta las estadísticas del dashboard
+    // Solo cuando se asigna a una orden (SERVICE_ASSIGNED)
+    
     return resul;
   }
 

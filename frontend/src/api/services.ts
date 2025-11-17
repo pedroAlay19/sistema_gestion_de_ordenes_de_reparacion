@@ -3,9 +3,12 @@
  */
 
 import { http } from './http';
-import type { MaintenanceService } from '../types';
+import type { Service, CreateMaintenanceServiceDto, UpdateMaintenanceServiceDto } from '../types/service.types';
 
 export const services = {
-  getAll: () => http.get<MaintenanceService[]>('/services'),
-  getById: (id: string) => http.get<MaintenanceService>(`/services/${id}`, true),
+  getAll: () => http.get<Service[]>('/services'),
+  getById: (id: string) => http.get<Service>(`/services/${id}`, true),
+  create: (service: CreateMaintenanceServiceDto) => http.post<Service>('/services', service, true),
+  update: (id: string, service: UpdateMaintenanceServiceDto) => http.patch<Service>(`/services/${id}`, service, true),
+  delete: (id: string) => http.delete(`/services/${id}`, true),
 };

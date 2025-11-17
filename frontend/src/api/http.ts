@@ -27,7 +27,14 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
     );
   }
   
-  const result = await response.json();
+  // Manejar respuestas vacías (common en DELETE)
+  const text = await response.text();
+  if (!text || text.trim() === '') {
+    console.log('✅ Respuesta exitosa (sin contenido)');
+    return {} as T;
+  }
+  
+  const result = JSON.parse(text);
   console.log('✅ Respuesta exitosa:', result);
   return result;
 };

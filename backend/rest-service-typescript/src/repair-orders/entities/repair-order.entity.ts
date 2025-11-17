@@ -8,7 +8,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { Equipment } from '../../equipments/entities/equipment.entity';
-import { OrderRepairStatus } from '../entities/enum/order-repair.enum';
+import { OrderRepairStatus } from './enum/order-repair.enum';
 import { RepairOrderDetail } from './repair-order-detail.entity';
 import { RepairOrderPart } from './repair-order-part.entity';
 import { RepairOrderNotification } from './repair-order-notification.entity';

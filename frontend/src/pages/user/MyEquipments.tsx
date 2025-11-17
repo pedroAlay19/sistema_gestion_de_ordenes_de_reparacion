@@ -100,7 +100,7 @@ export default function MyEquipments() {
   return (
     <>
       {/* Header */}
-      <div className="bg-slate-800 px-8 py-6">
+      <div className="bg-slate-900 border-b border-gray-800 px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white">Inventario de Equipos</h1>
@@ -110,7 +110,7 @@ export default function MyEquipments() {
           </div>
           <button
             onClick={() => navigate("/user/equipments/new")}
-            className="bg-pink-200 text-gray-800 px-5 py-3 rounded-lg font-medium hover:bg-pink-300 transition-colors flex items-center gap-2"
+            className="bg-gray-200 text-gray-800 px-5 py-3 rounded-lg font-medium hover:bg-pink-300 transition-colors flex items-center gap-2"
           >
             <PlusIcon className="w-5 h-5" />
             Agregar Equipo

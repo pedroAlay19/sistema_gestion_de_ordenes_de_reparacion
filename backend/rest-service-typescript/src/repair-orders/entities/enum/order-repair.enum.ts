@@ -4,7 +4,7 @@ export enum OrderRepairStatus {
   REJECTED = "REJECTED",
   IN_REPAIR = "IN_REPAIR",
   WAITING_PARTS = "WAITING_PARTS",
-  READRY = "READY",
+  READY = "READY",
   DELIVERED = "DELIVERED"
 }
 

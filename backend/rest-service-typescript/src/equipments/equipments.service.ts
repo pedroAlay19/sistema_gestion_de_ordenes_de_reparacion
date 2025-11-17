@@ -7,6 +7,7 @@ import { Repository } from 'typeorm';
 import { UsersService } from 'src/users/users.service';
 import { JwtPayload } from 'src/auth/interfaces/jwt-payload.interface';
 import { UserRole } from 'src/users/entities/enums/user-role.enum';
+import { EquipmentStatus } from './entities/enums/equipment.enum';
 
 @Injectable()
 export class EquipmentsService {
@@ -74,5 +75,11 @@ export class EquipmentsService {
   async remove(id: string, user: JwtPayload) {
     const equipment = await this.findOne(id, user);
     await this.equipmentRepository.remove(equipment);
+  }
+
+  async updateStatus(id: string, status: EquipmentStatus) {
+    const equipment = await this.findOneById(id);
+    equipment.currentStatus = status;
+    return await this.equipmentRepository.save(equipment);
   }
 }

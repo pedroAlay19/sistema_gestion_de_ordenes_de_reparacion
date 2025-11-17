@@ -12,12 +12,13 @@ import { EquipmentsService } from '../equipments/equipments.service';
 import { RepairOrderDetailsService } from './services/repair-order-details.service';
 import { RepairOrderPartsService } from './services/repair-order-parts.service';
 import { NotificationService } from './services/notification.service';
-import { OrderRepairStatus } from './entities/enum/order-repair.enum';
+import { OrderRepairStatus, TicketServiceStatus } from './entities/enum/order-repair.enum';
 import { UpdateRepairOrderDto } from './dto/update-repair-order.dto';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UserRole } from '../users/entities/enums/user-role.enum';
 import { UsersService } from '../users/users.service';
 import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
+import { EquipmentStatus } from '../equipments/entities/enums/equipment.enum';
 
 @Injectable()
 export class RepairOrdersService {
@@ -135,6 +136,52 @@ export class RepairOrdersService {
     });
   }
 
+  async findDetailsByTechnician(technicianId: string) {
+    const details = await this.repairOrderDetailsService.findByTechnician(technicianId);
+    return details;
+  }
+
+  async updateDetailStatus(detailId: string, technicianId: string, status: TicketServiceStatus, notes?: string) {
+    return await this.repairOrderDetailsService.updateStatus(detailId, technicianId, status, notes);
+  }
+
+  async updateDetailByTechnician(
+    detailId: string,
+    technicianId: string,
+    updateData: {
+      status: TicketServiceStatus;
+      unitPrice: number;
+      discount?: number;
+      imageUrl?: string;
+      notes?: string;
+    },
+  ) {
+    const result = await this.repairOrderDetailsService.updateByTechnician(detailId, technicianId, updateData);
+    
+    // Recalcular el finalCost de la orden
+    const repairOrder = await this.repairOrderRepository.findOne({
+      where: { id: result.repairOrderId },
+      relations: ['repairOrderDetails', 'repairOrderParts'],
+    });
+
+    if (repairOrder) {
+      const totalDetails = repairOrder.repairOrderDetails?.reduce(
+        (sum, d) => sum + Number(d.subTotal),
+        0,
+      ) ?? 0;
+
+      const totalParts = repairOrder.repairOrderParts?.reduce(
+        (sum, p) => sum + Number(p.subTotal),
+        0,
+      ) ?? 0;
+
+      repairOrder.finalCost = totalDetails + totalParts;
+      await this.repairOrderRepository.save(repairOrder);
+    }
+    
+    return result.detail;
+  }
+
   async findOne(id: string, user: JwtPayload) {
     switch (user.role) {
       case UserRole.ADMIN: {
@@ -250,7 +297,57 @@ export class RepairOrdersService {
   ) {
     if (!newStatus || newStatus === previousStatus) return;
     repairOrder.status = newStatus;
+    
+    // Actualizar estado del equipo según el estado de la orden
+    await this.updateEquipmentStatus(repairOrder, newStatus);
+    
+    // Generar fechas de garantía cuando se entrega
+    if (newStatus === OrderRepairStatus.DELIVERED) {
+      this.generateWarrantyDates(repairOrder);
+    }
+    
     await this.notificationService.create(repairOrder, newStatus);
+  }
+
+  private async updateEquipmentStatus(
+    repairOrder: RepairOrder,
+    newStatus: OrderRepairStatus,
+  ) {
+    const equipment = await this.equipmentsService.findOneById(
+      repairOrder.equipment.id,
+    );
+
+    if (!equipment) return;
+
+    // Cuando la orden pasa a IN_REPAIR, el equipo debe estar en IN_REPAIR
+    if (newStatus === OrderRepairStatus.IN_REPAIR) {
+      await this.equipmentsService.updateStatus(
+        equipment.id,
+        EquipmentStatus.IN_REPAIR,
+      );
+    }
+    
+    // Cuando la orden se entrega, el equipo vuelve a estar AVAILABLE
+    if (newStatus === OrderRepairStatus.DELIVERED) {
+      await this.equipmentsService.updateStatus(
+        equipment.id,
+        EquipmentStatus.AVAILABLE,
+      );
+    }
+  }
+
+  private generateWarrantyDates(repairOrder: RepairOrder) {
+    // Si ya tiene fechas de garantía, no las sobrescribimos
+    if (repairOrder.warrantyStartDate && repairOrder.warrantyEndDate) return;
+
+    const today = new Date();
+    const warrantyEnd = new Date();
+    
+    // Garantía de 3 meses desde hoy
+    warrantyEnd.setMonth(warrantyEnd.getMonth() + 3);
+
+    repairOrder.warrantyStartDate = today;
+    repairOrder.warrantyEndDate = warrantyEnd;
   }
 
   private updateWarrantyDates(

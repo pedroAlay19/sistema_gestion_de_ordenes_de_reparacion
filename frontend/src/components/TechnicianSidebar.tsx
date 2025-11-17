@@ -10,21 +10,35 @@ import { useAuth } from '../hooks/useAuth';
 export default function TechnicianSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Técnico NO evaluador ve "Mis Tareas", evaluador ve "Dashboard" y "Órdenes"
+  const isEvaluator = user?.isEvaluator === true;
+
   const menuItems = [
-    {
-      path: '/technician/dashboard',
-      icon: HomeIcon,
-      label: 'Dashboard',
-    },
-    {
-      path: '/technician/orders',
-      icon: WrenchScrewdriverIcon,
-      label: 'Órdenes',
-    }
+    ...(isEvaluator
+      ? [
+          {
+            path: '/technician/dashboard',
+            icon: HomeIcon,
+            label: 'Dashboard',
+          },
+          {
+            path: '/technician/orders',
+            icon: WrenchScrewdriverIcon,
+            label: 'Órdenes',
+          },
+        ]
+      : [
+          {
+            path: '/technician/my-tasks',
+            icon: WrenchScrewdriverIcon,
+            label: 'Mis Tareas',
+          },
+        ]
+    ),
   ];
 
   return (

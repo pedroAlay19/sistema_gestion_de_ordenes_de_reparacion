@@ -7,13 +7,16 @@ import { MaintenanceServicesService } from 'src/maintenance-services/maintenance
 import { UsersService } from 'src/users/users.service';
 import { CreateRepairOrderDetailDto } from '../dto/details/create-repair-order-detail.dto';
 import { UpdateRepairOrderDetailDto } from '../dto/details/update-repair-order-detail';
-import { TicketServiceStatus } from '../entities/enum/order-repair.enum';
+import { TicketServiceStatus, OrderRepairStatus } from '../entities/enum/order-repair.enum';
 
 @Injectable()
 export class RepairOrderDetailsService {
   constructor(
     @InjectRepository(RepairOrderDetail)
     private readonly repairOrderDetailRepository: Repository<RepairOrderDetail>,
+
+    @InjectRepository(RepairOrder)
+    private readonly repairOrderRepository: Repository<RepairOrder>,
 
     private readonly maintenanceServicesService: MaintenanceServicesService,
 
@@ -58,6 +61,94 @@ export class RepairOrderDetailsService {
         `Repair order detail with ID ${id} not found`,
       );
     return detail;
+  }
+
+  async findByTechnician(technicianId: string) {
+    return await this.repairOrderDetailRepository.find({
+      where: { technician: { id: technicianId } },
+      relations: ['service', 'repairOrder', 'repairOrder.equipment', 'repairOrder.equipment.user'],
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async updateStatus(detailId: string, technicianId: string, status: TicketServiceStatus, notes?: string) {
+    const detail = await this.repairOrderDetailRepository.findOne({
+      where: { id: detailId, technician: { id: technicianId } },
+      relations: ['technician', 'repairOrder'],
+    });
+    
+    if (!detail) {
+      throw new NotFoundException('Detail not found or you are not assigned to it');
+    }
+
+    detail.status = status;
+    if (notes !== undefined) detail.notes = notes;
+    
+    const savedDetail = await this.repairOrderDetailRepository.save(detail);
+
+    // Verificar si todos los detalles de la orden están completados
+    await this.checkAndUpdateOrderStatus(detail.repairOrder.id);
+    
+    return savedDetail;
+  }
+
+  async updateByTechnician(
+    detailId: string,
+    technicianId: string,
+    updateData: {
+      status: TicketServiceStatus;
+      unitPrice: number;
+      discount?: number;
+      imageUrl?: string;
+      notes?: string;
+    },
+  ) {
+    const detail = await this.repairOrderDetailRepository.findOne({
+      where: { id: detailId, technician: { id: technicianId } },
+      relations: ['technician', 'repairOrder'],
+    });
+    
+    if (!detail) {
+      throw new NotFoundException('Detail not found or you are not assigned to it');
+    }
+
+    // Actualizar todos los campos
+    detail.status = updateData.status;
+    detail.unitPrice = updateData.unitPrice;
+    detail.discount = updateData.discount ?? 0;
+    detail.subTotal = Number(updateData.unitPrice) - Number(updateData.discount ?? 0);
+    if (updateData.imageUrl !== undefined) detail.imageUrl = updateData.imageUrl;
+    if (updateData.notes !== undefined) detail.notes = updateData.notes;
+    
+    const savedDetail = await this.repairOrderDetailRepository.save(detail);
+
+    // Verificar si todos los detalles de la orden están completados
+    await this.checkAndUpdateOrderStatus(detail.repairOrder.id);
+    
+    return { detail: savedDetail, repairOrderId: detail.repairOrder.id };
+  }
+
+  private async checkAndUpdateOrderStatus(repairOrderId: string) {
+    // Obtener todos los detalles de la orden
+    const allDetails = await this.repairOrderDetailRepository.find({
+      where: { repairOrder: { id: repairOrderId } },
+    });
+
+    // Verificar si todos están completados
+    const allCompleted = allDetails.length > 0 && 
+      allDetails.every(detail => detail.status === TicketServiceStatus.COMPLETED);
+
+    if (allCompleted) {
+      // Actualizar el estado de la orden a READY
+      const repairOrder = await this.repairOrderRepository.findOne({
+        where: { id: repairOrderId },
+      });
+
+      if (repairOrder && repairOrder.status === OrderRepairStatus.IN_REPAIR) {
+        repairOrder.status = OrderRepairStatus.READY;
+        await this.repairOrderRepository.save(repairOrder);
+      }
+    }
   }
 
   async update(dto: UpdateRepairOrderDetailDto) {

@@ -20,9 +20,15 @@ const SignIn = () => {
       
       // Redirigir según el rol del usuario
       if (user.role === 'Technician') {
-        navigate("/technician/dashboard");
+        // Técnico evaluador → Dashboard, técnico regular → Mis Tareas
+        const technicianUser = user as any;
+        if (technicianUser.isEvaluator) {
+          navigate("/technician/dashboard");
+        } else {
+          navigate("/technician/my-tasks");
+        }
       } else if (user.role === 'Admin') {
-        navigate("/admin/dashboard"); // TODO: Crear vista de admin
+        navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");
       }

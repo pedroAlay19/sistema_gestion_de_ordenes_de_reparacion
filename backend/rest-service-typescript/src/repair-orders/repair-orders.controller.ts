@@ -2,6 +2,8 @@ import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/commo
 import { RepairOrdersService } from './repair-orders.service';
 import { CreateRepairOrderDto } from './dto/create-repair-order.dto';
 import { UpdateRepairOrderDto } from './dto/update-repair-order.dto';
+import { UpdateDetailStatusDto } from './dto/details/update-detail-status.dto';
+import { UpdateDetailByTechnicianDto } from './dto/details/update-detail-by-technician.dto';
 import { UserRole } from '../users/entities/enums/user-role.enum';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { ActiveUser } from '../auth/decorators/active-user.decorator';
@@ -29,75 +31,76 @@ export class RepairOrdersController {
     return this.repairOrdersService.findByEvaluator(user.sub);
   }
 
-  // ===== GRANULAR ANALYTICS ENDPOINTS =====
+  @Get('technician/my-details')
+  @Auth(UserRole.TECHNICIAN)
+  findMyDetails(@ActiveUser() user: JwtPayload) {
+    return this.repairOrdersService.findDetailsByTechnician(user.sub);
+  }
 
-  /**
-   * Get orders overview (totals only)
-   * GET /repair-orders/stats/overview
-   */
+  @Patch('technician/detail/:detailId/status')
+  @Auth(UserRole.TECHNICIAN)
+  updateDetailStatus(
+    @Param('detailId') detailId: string,
+    @Body() updateStatusDto: UpdateDetailStatusDto,
+    @ActiveUser() user: JwtPayload
+  ) {
+    return this.repairOrdersService.updateDetailStatus(
+      detailId,
+      user.sub,
+      updateStatusDto.status,
+      updateStatusDto.notes
+    );
+  }
+
+  @Patch('technician/detail/:detailId')
+  @Auth(UserRole.TECHNICIAN)
+  updateDetailByTechnician(
+    @Param('detailId') detailId: string,
+    @Body() updateDto: UpdateDetailByTechnicianDto,
+    @ActiveUser() user: JwtPayload
+  ) {
+    return this.repairOrdersService.updateDetailByTechnician(
+      detailId,
+      user.sub,
+      updateDto
+    );
+  }
+
   @Get('stats/overview')
   getOrdersOverview() {
     return this.repairOrdersService.getOrdersOverview();
   }
 
-  /**
-   * Get revenue statistics
-   * GET /repair-orders/stats/revenue
-   */
   @Get('stats/revenue')
   getRevenueStats() {
     return this.repairOrdersService.getRevenueStats();
   }
 
-  /**
-   * Get orders by status
-   * GET /repair-orders/stats/by-status
-   */
   @Get('stats/by-status')
   getOrdersByStatus() {
     return this.repairOrdersService.getOrdersByStatus();
   }
 
-  /**
-   * Get recent orders
-   * GET /repair-orders/stats/recent?limit=10
-   */
   @Get('stats/recent')
   getRecentOrders() {
     return this.repairOrdersService.getRecentOrders(10);
   }
 
-  /**
-   * Get top services
-   * GET /repair-orders/stats/top-services?limit=5
-   */
   @Get('stats/top-services')
   getTopServices() {
     return this.repairOrdersService.getTopServices(5);
   }
 
-  /**
-   * Get total orders count (single number)
-   * GET /repair-orders/stats/count/total
-   */
   @Get('stats/count/total')
   getTotalOrdersCount() {
     return this.repairOrdersService.getTotalOrdersCount();
   }
 
-  /**
-   * Get active orders count (single number)
-   * GET /repair-orders/stats/count/active
-   */
   @Get('stats/count/active')
   getActiveOrdersCount() {
     return this.repairOrdersService.getActiveOrdersCount();
   }
 
-  /**
-   * Get total revenue (single number)
-   * GET /repair-orders/stats/revenue/total
-   */
   @Get('stats/revenue/total')
   getTotalRevenue() {
     return this.repairOrdersService.getTotalRevenue();

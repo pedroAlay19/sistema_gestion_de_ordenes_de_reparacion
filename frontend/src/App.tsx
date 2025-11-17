@@ -24,6 +24,7 @@ import UserDashboard from "./pages/user/UserDashboard.tsx";
 import TechnicianDashboard from "./pages/technician/TechnicianDashboard";
 import AssignedOrders from "./pages/technician/AssignedOrders";
 import TechnicianRepairOrderDetail from "./pages/technician/TechnicianRepairOrderDetail";
+import MyAssignedDetails from "./pages/technician/MyAssignedDetails";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -68,6 +69,7 @@ function App() {
               path="orders/:id"
               element={<TechnicianRepairOrderDetail />}
             />
+            <Route path="my-tasks" element={<MyAssignedDetails />} />
             <Route path="profile" element={<Profile />} />
           </Route>
 

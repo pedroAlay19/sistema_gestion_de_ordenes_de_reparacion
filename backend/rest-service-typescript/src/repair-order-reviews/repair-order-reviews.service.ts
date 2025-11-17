@@ -133,7 +133,7 @@ export class RepairOrderReviewsService {
     }
 
     const reviewFound = await this.repairOrderReviewRepository.findOne({
-      where: { repairOrder: { equipment: { user: { id: user.sub } } } },
+      where: { id, repairOrder: { equipment: { user: { id: user.sub } } } },
     });
     if (!reviewFound)
       throw new NotFoundException(`Review with id ${id} not found`);

@@ -163,7 +163,7 @@ export default function SparePartsManagement() {
 
       {/* KPIs Críticos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: Stock Bajo - CRUCIAL */}
+        {/* KPI 1: Stock Bajo*/}
         <button
           onClick={() => setFilterStock(filterStock === "low" ? "all" : "low")}
           className={`bg-gradient-to-br from-orange-500/10 to-red-500/10 rounded-lg p-4 border-2 transition-all hover:scale-105 text-left ${

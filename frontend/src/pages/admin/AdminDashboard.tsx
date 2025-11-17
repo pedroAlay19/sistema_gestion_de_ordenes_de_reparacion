@@ -16,10 +16,12 @@ import {
 import { formatDate } from "../../utils/formatDate";
 import { useWebSocket } from "../../hooks/useWebSocket";
 import { fetchFullDashboard, type FullDashboardData } from "../../api/dashboard-granular";
+import NotificationToast from "../../components/NotificationToast";
 
 export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<FullDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [notification, setNotification] = useState<string | null>(null);
 
   // Fetch inicial de todos los datos
   useEffect(() => {
@@ -44,9 +46,14 @@ export default function AdminDashboard() {
     onDashboardUpdate: (message) => {
       console.log(`Updating dashboard - Event: ${message.event}`);
       
+      // Mostrar notificación cuando se crea una nueva orden
+      if (message.event === "REPAIR_ORDER_CREATED") {
+        setNotification("Nueva orden de reparación recibida");
+      }
+      
       // Solo actualizar si ya tenemos datos iniciales cargados
       if (!dashboardData) {
-        console.log("⚠️ Ignoring update, waiting for initial data load");
+        console.log("Ignoring update, waiting for initial data load");
         return;
       }
       
@@ -367,6 +374,15 @@ export default function AdminDashboard() {
           </ChartCard>
         </div>
       </div>
+
+      {/* Notification Toast */}
+      {notification && (
+        <NotificationToast
+          message={notification}
+          type="info"
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   );
 }

@@ -42,7 +42,7 @@ var eventToEndpoints = map[string][]string{
 		"/users/stats/count/technicians",
 		"/users/stats/count/active-technicians",
 	},
-	// Evento genérico: actualiza todo (fallback)
+	// Evento genérico: actualiza todo
 	"DASHBOARD_FULL_UPDATE": {
 		"/repair-orders/stats/overview",
 		"/repair-orders/stats/revenue",
@@ -192,7 +192,7 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 	mutex.Lock()
 	clients[conn] = true
 	mutex.Unlock()
-	fmt.Println("✅ Nuevo cliente conectado al WebSocket")
+	fmt.Println("Nuevo cliente conectado al WebSocket")
 
 	// El cliente cargará datos iniciales desde REST API directamente
 	// NO enviar dashboard completo al conectar

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Reporte de Orden de Reparación</title>
+
+<style>
+    body {
+        font-family: "Arial", sans-serif;
+        padding: 40px;
+        color: #333;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 26px;
+        margin-bottom: 10px;
+        letter-spacing: 1px;
+        font-weight: 600;
+    }
+
+    .section-title {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 25px;
+        margin-bottom: 5px;
+        padding-bottom: 3px;
+        border-bottom: 1px solid #999;
+    }
+
+    .info-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+    }
+
+    .info-table td {
+        padding: 6px 4px;
+        vertical-align: top;
+    }
+
+    .label {
+        font-weight: bold;
+        width: 180px;
+        color: #444;
+    }
+
+    /* Tablas de detalles y partes */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 12px;
+        font-size: 13px;
+    }
+
+    th {
+        text-align: left;
+        padding: 6px;
+        background: #f2f2f2;
+        border-bottom: 1px solid #ccc;
+        font-weight: bold;
+    }
+
+    td {
+        padding: 6px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .footer {
+        margin-top: 40px;
+        text-align: right;
+        font-size: 12px;
+        color: #555;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>Orden de Reparación</h1>
+
+<!-- ========== 1. Información General ========== -->
+<div class="section-title">1. Información General</div>
+<table class="info-table">
+    <tr><td class="label">ID de Orden:</td><td>{{order_id}}</td></tr>
+    <tr><td class="label">Estado:</td><td>{{status}}</td></tr>
+    <tr><td class="label">Problema Reportado:</td><td>{{problemDescription}}</td></tr>
+    <tr><td class="label">Diagnóstico:</td><td>{{diagnosis}}</td></tr>
+    <tr><td class="label">Costo Estimado:</td><td>{{estimatedCost}}</td></tr>
+    <tr><td class="label">Costo Final:</td><td>{{finalCost}}</td></tr>
+    <tr><td class="label">Garantía Inicio:</td><td>{{warrantyStartDate}}</td></tr>
+    <tr><td class="label">Garantía Fin:</td><td>{{warrantyEndDate}}</td></tr>
+    <tr><td class="label">Fecha de Registro:</td><td>{{createdAt}}</td></tr>
+</table>
+
+<!-- ========== 3. Equipo ========== -->
+<div class="section-title">3. Equipo</div>
+<table class="info-table">
+    <tr><td class="label">Nombre:</td><td>{{equipment_name}}</td></tr>
+    <tr><td class="label">Tipo:</td><td>{{equipment_type}}</td></tr>
+    <tr><td class="label">Marca:</td><td>{{equipment_brand}}</td></tr>
+    <tr><td class="label">Modelo:</td><td>{{equipment_model}}</td></tr>
+    <tr><td class="label">N° Serie:</td><td>{{equipment_serialNumber}}</td></tr>
+    <tr><td class="label">Estado Actual:</td><td>{{equipment_currentStatus}}</td></tr>
+</table>
+
+<!-- ========== 4. Técnico Responsable ========== -->
+<div class="section-title">4. Técnico Responsable</div>
+<table class="info-table">
+    <tr><td class="label">Nombre:</td><td>{{tech_name}}</td></tr>
+    <tr><td class="label">Apellidos:</td><td>{{tech_lastName}}</td></tr>
+    <tr><td class="label">Email:</td><td>{{tech_email}}</td></tr>
+</table>
+
+<!-- ========== 5. Detalles de la Orden ========== -->
+<div class="section-title">5. Detalles de Servicios</div>
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Unitario</th>
+            <th>Descuento</th>
+            <th>Subtotal</th>
+            <th>Estado</th>
+            <th>Notas</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{details_rows}}
+    </tbody>
+</table>
+
+<!-- ========== 6. Partes Utilizadas ========== -->
+<div class="section-title">6. Partes Utilizadas</div>
+<table>
+    <thead>
+        <tr>
+            <th>ID Parte</th>
+            <th>Cantidad</th>
+            <th>Subtotal</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{parts_rows}}
+    </tbody>
+</table>
+
+<div class="footer">
+    Generado el {{generated_date}}
+</div>
+
+</body>
+</html>
+

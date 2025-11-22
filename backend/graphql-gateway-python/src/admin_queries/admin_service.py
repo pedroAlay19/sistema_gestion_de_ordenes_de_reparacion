@@ -9,6 +9,7 @@ from .admin_types import (
 	MaintenanceServiceType,
 	RepairOrderType,
 	RepairOrderDetailType,
+	TechnicianType
 )
 
 load_dotenv()
@@ -36,7 +37,19 @@ def get_users(auth_header: Optional[str] = None) -> List[UserType]:
 	users = res.json() or []
 	out: List[UserType] = []
 	for u in users:
-		out.append(UserType(id=u.get("id"), name=u.get("name"), email=u.get("email"), role=u.get("role")))
+		out.append(
+			UserType(
+				id=u.get("id"),
+				name=u.get("name"),
+				lastName=u.get("lastName"),
+				email=u.get("email"),
+				phone=u.get("phone"),
+				address=u.get("address"),
+				role=u.get("role"),
+				createdAt=u.get("createdAt"),
+                updatedAt=u.get("updatedAt")
+			)
+		)
 	return out
 
 
@@ -44,20 +57,105 @@ def get_user(user_id: str, auth_header: Optional[str] = None) -> Optional[UserTy
 	res = requests.get(f"{API_URL}/users/{user_id}", headers=_build_headers(auth_header), timeout=10)
 	res.raise_for_status()
 	u = res.json() or {}
-	return UserType(id=u.get("id"), name=u.get("name"), email=u.get("email"), role=u.get("role"))
+	return UserType(
+    id=u.get("id"),
+    name=u.get("name"),
+    lastName=u.get("lastName"),
+    email=u.get("email"),
+    phone=u.get("phone"),
+    address=u.get("address"),
+    role=u.get("role"),
+    createdAt=u.get("createdAt"),
+)
 
 
-def create_user(payload: Dict[str, Any], auth_header: Optional[str] = None) -> UserType:
-	res = requests.post(f"{API_URL}/users", json=payload, headers=_build_headers(auth_header), timeout=10)
-	res.raise_for_status()
-	u = res.json()
-	return UserType(id=u.get("id"), name=u.get("name"), email=u.get("email"), role=u.get("role"))
+def get_technician(user_id: str, auth_header: Optional[str] = None) -> Optional[TechnicianType]:
+    res = requests.get(f"{API_URL}/users/{user_id}", headers=_build_headers(auth_header), timeout=10)
+    res.raise_for_status()
+    u = res.json()
+    return TechnicianType(
+        id=u.get("id"),
+        name=u.get("name"),
+        lastName=u.get("lastName"),
+        email=u.get("email"),
+        phone=u.get("phone"),
+        address=u.get("address"),
+        role=u.get("role"),
+        createdAt=u.get("createdAt"),
+        updatedAt=u.get("updatedAt"),
+        specialty=u.get("specialty"),
+        experienceYears=u.get("experienceYears"),
+        isEvaluator=u.get("isEvaluator"),
+        active=u.get("active"),
+    )
 
 
-def delete_user(user_id: str, auth_header: Optional[str] = None) -> bool:
-	res = requests.delete(f"{API_URL}/users/{user_id}", headers=_build_headers(auth_header), timeout=10)
-	res.raise_for_status()
-	return res.status_code == 200 or res.status_code == 204
+def get_users_raw(auth_header: Optional[str] = None) -> list:
+    """
+    Devuelve el JSON completo del REST sin convertir a UserType.
+    Ideal para reportes PDF.
+    """
+    res = requests.get(f"{API_URL}/users", headers=_build_headers(auth_header), timeout=10)
+    res.raise_for_status()
+    return res.json() or []
+
+
+def get_technicians_raw(auth_header: Optional[str] = None) -> list:
+    res = requests.get(
+        f"{API_URL}/users/technician",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or []
+
+def get_technician_raw(user_id: str, auth_header=None) -> dict:
+    res = requests.get(
+        f"{API_URL}/users/{user_id}",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or {}
+
+def get_equipments_raw(auth_header: Optional[str] = None) -> list:
+    res = requests.get(
+        f"{API_URL}/equipments",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or []
+
+
+def get_equipment(auth_header: Optional[str], id: str):
+    res = requests.get(
+        f"{API_URL}/equipments/{id}",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or {}
+
+def get_equipment(equipment_id: str, auth_header: Optional[str] = None):
+    res = requests.get(
+        f"{API_URL}/equipments/{equipment_id}",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or {}
+
+
+def get_equipment_raw(equipment_id: str, auth_header: Optional[str] = None) -> dict:
+    res = requests.get(
+        f"{API_URL}/equipments/{equipment_id}",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or {}
+
 
 
 # Spare parts
@@ -93,76 +191,129 @@ def get_services(auth_header: Optional[str] = None) -> List[MaintenanceServiceTy
 
 # Repair orders and stats
 def get_repair_orders(auth_header: Optional[str] = None) -> List[RepairOrderType]:
-	res = requests.get(f"{API_URL}/repair-orders", headers=_build_headers(auth_header), timeout=10)
-	res.raise_for_status()
-	items = res.json() or []
-	out: List[RepairOrderType] = []
-	for r in items:
-		details_json = r.get("details") or r.get("ticketServices") or r.get("repairOrderDetails") or []
-		details: List[RepairOrderDetailType] = []
-		for d in details_json:
-			svc = d.get("service") or {}
-			# Sólo construir el objeto service si viene información mínima
-			if svc and (svc.get("id") or svc.get("serviceName")):
-				service = MaintenanceServiceType(
-					id=svc.get("id"),
-					service_name=svc.get("serviceName"),
-					description=svc.get("description"),
-					base_price=float(svc.get("basePrice", 0) or 0),
-					estimated_time_minutes=svc.get("estimatedTimeMinutes"),
-					requires_parts=svc.get("requiresParts", False),
-					type=svc.get("type"),
-					active=svc.get("active", False),
-				)
-			else:
-				service = None
+    res = requests.get(f"{API_URL}/repair-orders", headers=_build_headers(auth_header), timeout=10)
+    res.raise_for_status()
+    items = res.json() or []
+    out: List[RepairOrderType] = []
 
-			details.append(RepairOrderDetailType(
-				id=d.get("id"),
-				service=service,
-				unit_price=float(d.get("unitPrice", 0) or 0),
-				discount=float(d.get("discount", 0) or 0),
-				sub_total=float(d.get("subTotal", 0) or 0),
-				status=d.get("status"),
-				created_at=d.get("createdAt"),
-				updated_at=d.get("updatedAt"),
-			))
+    for r in items:
+        details_json = (
+            r.get("details")
+            or r.get("ticketServices")
+            or r.get("repairOrderDetails")
+            or []
+        )
 
-		# Extraer client_id probando varias ubicaciones/estilos (camelCase/snake_case y relaciones anidadas)
-		client_id = (
-			r.get("clientId") or r.get("client_id") or r.get("clientid") or
-			(r.get("equipment") or {}).get("user", {}).get("id") or
-			(r.get("equipment") or {}).get("userId") or
-			(r.get("evaluatedBy") or {}).get("id")
-		)
+        details: List[RepairOrderDetailType] = []
+        for d in details_json:
+            details.append(
+                RepairOrderDetailType(
+                    id=d.get("id"),
+                    unit_price=float(d.get("unitPrice", 0) or 0),
+                    discount=float(d.get("discount", 0) or 0),
+                    sub_total=float(d.get("subTotal", 0) or 0),
+                    status=d.get("status"),
+                    created_at=d.get("createdAt"),
+                    updated_at=d.get("updatedAt"),
+                )
+            )
 
-		# Extraer technician_id: búsqueda en el objeto orden y en los detalles
-		technician_id = (
-			r.get("technicianId") or r.get("technician_id") or r.get("technicianid")
-		)
-		if not technician_id:
-			# Buscar en los detalles (primer técnico disponible)
-			for d in details_json:
-				tech = (d.get("technician") or {})
-				if tech.get("id"):
-					technician_id = tech.get("id")
-					break
-				# también probar otras convenciones dentro del detalle
-				if d.get("technicianId"):
-					technician_id = d.get("technicianId")
-					break
+        out.append(
+            RepairOrderType(
+                id=r.get("id"),
+                details=details,
+                total=float(r.get("total", 0) or 0),
+                status=r.get("status"),
+            )
+        )
 
-		out.append(RepairOrderType(
-			id=r.get("id"),
-			details=details,
-			total=float(r.get("total", 0) or 0),
-			status=r.get("status"),
-		))
-	return out
+    return out
 
 
-def get_orders_overview(auth_header: Optional[str] = None) -> Dict[str, Any]:
-	res = requests.get(f"{API_URL}/repair-orders/stats/overview", headers=_build_headers(auth_header), timeout=10)
-	res.raise_for_status()
-	return res.json() or {}
+def get_repair_orders_raw(auth_header: Optional[str] = None) -> list:
+    """
+    Necesario para reportes de órdenes por estado.
+    """
+    res = requests.get(
+        f"{API_URL}/repair-orders",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or []
+
+
+
+def get_repair_order_raw(order_id: str, auth_header: Optional[str] = None) -> dict:
+    res = requests.get(
+        f"{API_URL}/repair-orders/{order_id}",
+        headers=_build_headers(auth_header),
+        timeout=10,
+    )
+    res.raise_for_status()
+    return res.json() or {}
+
+
+
+def get_technicians(auth_header: Optional[str] = None) -> List[TechnicianType]:
+    """
+    Devuelve únicamente los usuarios cuyo rol es 'Technician'
+    y los mapea al tipo TechnicianType.
+    """
+    res = requests.get(
+        f"{API_URL}/users/technician",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    users = res.json() or []
+
+    technicians: List[TechnicianType] = []
+
+    for u in users:
+        if u.get("role") == "Technician":
+            technicians.append(
+                TechnicianType(
+                    id=u.get("id"),
+                    name=u.get("name"),
+                    lastName=u.get("lastName"),
+                    email=u.get("email"),
+                    phone=u.get("phone"),
+                    address=u.get("address"),
+                    role=u.get("role"),
+                    createdAt=u.get("createdAt"),
+                    updatedAt=u.get("updatedAt"),
+                    specialty=u.get("specialty"),
+                    experienceYears=u.get("experienceYears"),
+                    isEvaluator=u.get("isEvaluator"),
+                    active=u.get("active"),
+                )
+            )
+
+    return technicians
+
+
+def get_equipment_raw(equipment_id: str, auth_header: Optional[str] = None) -> dict:
+    """
+    Devuelve el JSON completo del REST para un equipo específico,
+    incluyendo usuario y órdenes asociadas.
+    """
+    res = requests.get(
+        f"{API_URL}/equipments/{equipment_id}",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or {}
+
+
+def get_spare_parts_raw(auth_header: Optional[str] = None) -> list:
+    res = requests.get(
+        f"{API_URL}/spare-parts",
+        headers=_build_headers(auth_header),
+        timeout=10
+    )
+    res.raise_for_status()
+    return res.json() or []
+
 

@@ -17,7 +17,6 @@ class MaintenanceServiceType:
 @strawberry.type
 class RepairOrderDetailType:
 	id: Optional[str]
-	service: Optional[MaintenanceServiceType]
 	unit_price: Optional[float]
 	discount: Optional[float]
 	sub_total: Optional[float]
@@ -30,8 +29,21 @@ class RepairOrderDetailType:
 class UserType:
 	id: Optional[str]
 	name: Optional[str]
+	lastName: Optional[str]
 	email: Optional[str]
+	phone: Optional[str]
+	address: Optional[str]
 	role: Optional[str]
+	createdAt: Optional[str]
+	updatedAt: Optional[str]
+
+@strawberry.type
+class TechnicianType(UserType):
+	specialty: Optional[str]
+	experienceYears: Optional[int]
+	isEvaluator: Optional[bool]
+	active: Optional[bool]
+
 
 
 @strawberry.type
@@ -50,6 +62,8 @@ class RepairOrderType:
 	status: Optional[str]
 
 
+
+
 @strawberry.type
 class OrdersOverviewType:
 	total: Optional[int]
@@ -60,3 +74,54 @@ class OrdersOverviewType:
 class UsersOverviewType:
 	total_clients: Optional[int]
 	total_technicians: Optional[int]
+
+
+
+@strawberry.type
+class RepairOrderFullType:
+    id: Optional[str]
+    status: Optional[str]
+    finalCost: Optional[float]
+    createdAt: Optional[str]
+
+    # Cliente
+    clientName: Optional[str]
+    clientLastName: Optional[str]
+
+    # Técnico evaluador
+    technicianName: Optional[str]
+    technicianLastName: Optional[str]
+
+    # Equipo
+    equipmentName: Optional[str]
+    equipmentType: Optional[str]
+
+
+
+@strawberry.type
+class TechnicianPerformanceType:
+    technicianName: Optional[str]
+    technicianLastName: Optional[str]
+    totalOrders: int
+    totalRevenue: float
+
+
+@strawberry.type
+class EquipmentType:
+    id: Optional[str]
+    name: Optional[str]
+    type: Optional[str]
+    brand: Optional[str]
+    model: Optional[str]
+    serialNumber: Optional[str]
+    currentStatus: Optional[str]
+    createdAt: Optional[str]
+
+
+	# usuario dueño
+    userName: Optional[str]
+    userLastName: Optional[str]
+
+
+
+

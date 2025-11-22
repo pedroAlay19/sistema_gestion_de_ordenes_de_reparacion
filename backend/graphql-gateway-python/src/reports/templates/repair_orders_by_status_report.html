@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>Órdenes por Estado</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 40px; color:#333; font-size:14px; }
+  h1 { text-align:center; font-size:24px; margin-bottom:8px; }
+  .subtitle { text-align:center; color:#666; margin-bottom:20px; }
+  .summary { margin: 10px 0 20px 0; font-size:15px; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th { background:#f2f2f2; padding:8px; text-align:left; }
+  td { border-bottom:1px solid #eee; padding:8px; }
+  .footer { margin-top:35px; text-align:right; color:#666; font-size:12px;}
+</style>
+</head>
+<body>
+
+<h1>Reporte de Órdenes por Estado</h1>
+<div class="subtitle">Estado filtrado: <b>{{status}}</b></div>
+
+<div class="summary">
+  Total de órdenes: <b>{{total_orders}}</b><br/>
+  Suma total: <b>{{total_sum}}</b>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Cliente</th>
+      <th>Técnico</th>
+      <th>Estado</th>
+      <th>Total</th>
+      <th>Creado</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{orders_rows}}
+  </tbody>
+</table>
+
+<div class="footer">Generado el {{generated_date}}</div>
+</body>
+</html>

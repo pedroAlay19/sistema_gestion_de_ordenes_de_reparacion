@@ -28,16 +28,34 @@ def generate_technicians_performance_report(techs: list, orders: list) -> str:
     perf_map = {}
 
     for o in orders or []:
-        tech = o.get("evaluatedBy") or {}
-        tech_id = tech.get("id")
-        if not tech_id:
-            continue
-
-        if tech_id not in perf_map:
-            perf_map[tech_id] = {"orders": 0, "income": 0.0}
-
-        perf_map[tech_id]["orders"] += 1
-        perf_map[tech_id]["income"] += float(o.get("finalCost") or 0)
+        # Obtener técnicos asignados a servicios (RepairOrderDetails)
+        details = o.get("repairOrderDetails") or []
+        
+        # Si hay detalles con técnicos asignados, contar por cada técnico
+        if details:
+            for detail in details:
+                tech = detail.get("technician") or {}
+                tech_id = tech.get("id")
+                
+                if tech_id:
+                    if tech_id not in perf_map:
+                        perf_map[tech_id] = {"orders": 0, "income": 0.0}
+                    
+                    # Contar cada detalle como una orden de servicio
+                    perf_map[tech_id]["orders"] += 1
+                    # Sumar el subtotal del servicio específico
+                    perf_map[tech_id]["income"] += float(detail.get("subTotal") or 0)
+        else:
+            # Si no hay detalles, usar evaluatedBy como fallback
+            tech = o.get("evaluatedBy") or {}
+            tech_id = tech.get("id")
+            
+            if tech_id:
+                if tech_id not in perf_map:
+                    perf_map[tech_id] = {"orders": 0, "income": 0.0}
+                
+                perf_map[tech_id]["orders"] += 1
+                perf_map[tech_id]["income"] += float(o.get("finalCost") or 0)
 
     # -----------------------------------------
     # 2) Pintar filas por técnico

@@ -104,7 +104,10 @@ export class RepairOrdersService {
         return await this.repairOrderRepository.find({
           relations: [
             'repairOrderDetails',
+            'repairOrderDetails.technician',
+            'repairOrderDetails.service',
             'repairOrderParts',
+            'repairOrderParts.part',
             'equipment.user',
             'evaluatedBy',
           ],
@@ -189,8 +192,12 @@ export class RepairOrdersService {
           where: { id },
           relations: [
             'equipment',
+            'equipment.user',
             'repairOrderDetails',
+            'repairOrderDetails.technician',
+            'repairOrderDetails.service',
             'repairOrderParts',
+            'repairOrderParts.part',
             'evaluatedBy',
           ],
         });

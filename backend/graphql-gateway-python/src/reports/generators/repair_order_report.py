@@ -38,14 +38,20 @@ def generate_repair_order_report(order: dict) -> str:
 
     # --- Datos anidados ---
     equipment = order.get("equipment") or {}
-    tech = order.get("evaluatedBy") or {}
-
+    
     # --- Filas de detalles ---
     details = (
         order.get("repairOrderDetails")
         or order.get("details")
         or []
     )
+    
+    # Obtener técnico responsable del primer detalle, o evaluador como fallback
+    tech = {}
+    if details and len(details) > 0:
+        tech = details[0].get("technician") or {}
+    if not tech:
+        tech = order.get("evaluatedBy") or {}
 
     details_rows = ""
     if details:

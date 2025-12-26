@@ -30,6 +30,11 @@ export class MaintenanceServicesController {
     return this.maintenanceSService.findAll();
   }
 
+  @Get('applicable/:equipmentId')
+  findApplicableServices(@Param('equipmentId') equipmentId: string) {
+    return this.maintenanceSService.findApplicableServices(equipmentId);
+  }
+
   @Get(':id')
   @Auth(UserRole.ADMIN)
   findOne(@Param('id') id: string) {

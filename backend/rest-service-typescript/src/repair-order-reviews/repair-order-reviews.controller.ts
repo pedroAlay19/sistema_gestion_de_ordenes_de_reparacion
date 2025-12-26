@@ -28,16 +28,16 @@ export class RepairOrderReviewsController {
     return this.repairOrderReviewsService.findBestsReviews();
   }
 
+  @Get('repair-order/:repairOrderId')
+  @Auth(UserRole.USER, UserRole.TECHNICIAN)
+  findByRepairOrderId(@Param('repairOrderId') repairOrderId: string) {
+    return this.repairOrderReviewsService.findByRepairOrderId(repairOrderId);
+  }
+
   @Get(':id')
   @Auth(UserRole.ADMIN, UserRole.USER)
   findOne(@Param('id') id: string, @ActiveUser() user: JwtPayload) {
     return this.repairOrderReviewsService.findOne(id, user);
-  }
-
-  @Get(':repairOrderId')
-  @Auth(UserRole.USER, UserRole.TECHNICIAN)
-  findByRepairOrderId(@Param('repairOrderId') repairOrderId: string) {
-    return this.repairOrderReviewsService.findByRepairOrderId(repairOrderId);
   }
 
   @Patch(':id')

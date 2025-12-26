@@ -4,10 +4,9 @@ import {
   CheckCircleIcon, 
   ExclamationCircleIcon,
   WrenchIcon,
-  ShoppingCartIcon,
   TruckIcon
 } from '@heroicons/react/24/outline';
-import { OrderRepairStatus } from '../../types';
+import { OrderRepairStatus } from '../../types/repair-order.types';
 
 interface TimelineStep {
   status: OrderRepairStatus;
@@ -39,12 +38,6 @@ const timelineSteps: TimelineStep[] = [
     label: 'En Reparación',
     icon: WrenchIcon,
     color: 'text-blue-600',
-  },
-  {
-    status: OrderRepairStatus.WAITING_PARTS,
-    label: 'Esperando Piezas',
-    icon: ShoppingCartIcon,
-    color: 'text-orange-600',
   },
   {
     status: OrderRepairStatus.READY,

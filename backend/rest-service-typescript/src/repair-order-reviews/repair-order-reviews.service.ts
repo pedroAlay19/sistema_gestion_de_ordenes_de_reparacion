@@ -12,7 +12,6 @@ import { RepairOrdersService } from 'src/repair-orders/repair-orders.service';
 import { OrderRepairStatus } from 'src/repair-orders/entities/enum/order-repair.enum';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UserRole } from 'src/users/entities/enums/user-role.enum';
-import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 
 @Injectable()
 export class RepairOrderReviewsService {
@@ -22,7 +21,6 @@ export class RepairOrderReviewsService {
 
     private readonly repairOrdersService: RepairOrdersService,
 
-    private readonly wsNotificationService: WebSocketNotificationService,
   ) {}
 
   async create(
@@ -41,32 +39,16 @@ export class RepairOrderReviewsService {
       throw new BadRequestException(
         'Cannot create review before the repair is completed',
       );
-    const existingReview = await this.repairOrderReviewRepository.findOne({
-      where: { repairOrder: { id: createRepairOrderReviewDto.repairOrderId } },
-    });
-    if (existingReview) {
-      throw new BadRequestException(
-        'A review for this repair order already exists',
-      );
-    }
 
     const review = this.repairOrderReviewRepository.create({
       ...createRepairOrderReviewDto,
       repairOrder,
     });
-    const saveReview = await this.repairOrderReviewRepository.save(review);
-
-    // Las reviews no están actualmente en las estadísticas del dashboard admin
-    // Si se agregan métricas de reviews, descomentar:
-    // await this.wsNotificationService.notifyDashboardUpdate('REVIEW_CREATED', saveReview.id);
-
-    return saveReview;
+    return await this.repairOrderReviewRepository.save(review);
   }
 
   async findAll(user: JwtPayload) {
-    const reviews = await this.repairOrderReviewRepository.find({
-      relations: ['repairOrder'],
-    });
+    const reviews = await this.repairOrderReviewRepository.find();
 
     switch (user.role) {
       case UserRole.ADMIN:
@@ -112,7 +94,7 @@ export class RepairOrderReviewsService {
   }
 
   async findByRepairOrderId(repairOrderId: string) {
-    const reviewFound = await this.repairOrderReviewRepository.findOne({
+    const reviewFound = await this.repairOrderReviewRepository.find({
       where: { repairOrder: { id: repairOrderId }, visible: true },
     });
     if (!reviewFound)

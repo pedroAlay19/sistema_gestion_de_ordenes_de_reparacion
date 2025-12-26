@@ -1,7 +1,3 @@
-/**
- * Cliente API para la generación de informes PDF a través de GraphQL
- */
-
 const GRAPHQL_URL = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8000/';
 
 /**

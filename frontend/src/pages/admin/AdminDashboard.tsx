@@ -1,36 +1,63 @@
-import { useEffect, useState } from "react";
-import {
-  KPICard,
-  ChartCard,
-  ActivityItem,
-  AlertCard,
-} from "../../components/admin";
+import { useEffect, useState, type JSX } from "react";
 import {
   CurrencyDollarIcon,
   ClipboardDocumentListIcon,
   UsersIcon,
   WrenchScrewdriverIcon,
-  ClockIcon,
   CheckCircleIcon,
+  ClockIcon,
+  XCircleIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
-import { formatDate } from "../../utils/formatDate";
-import { useWebSocket } from "../../hooks/useWebSocket";
-import { fetchFullDashboard, type FullDashboardData } from "../../api/dashboard-granular";
-import NotificationToast from "../../components/NotificationToast";
+import { repairOrders } from "../../api/repair-orders";
+import { users } from "../../api/users";
+import type { OrdersOverview, RevenueStats, OrdersByStatus, TopServices } from "../../types/repair-order.types";
+import type { UsersOverview } from "../../types/user.types";
+
+// Type para los datos completos del dashboard
+export interface FullDashboardData {
+  orders_overview: OrdersOverview;
+  orders_revenue: RevenueStats;
+  orders_by_status: OrdersByStatus;
+  orders_top_services: TopServices;
+  users_overview: UsersOverview;
+}
+
+// Helper para cargar todos los datos del dashboard
+const fetchFullDashboard = async (): Promise<FullDashboardData> => {
+  const [
+    orders_overview,
+    orders_revenue,
+    orders_by_status,
+    orders_top_services,
+    users_overview,
+  ] = await Promise.all([
+    repairOrders.getOrdersOverview(),
+    repairOrders.getRevenueStats(),
+    repairOrders.getOrdersByStatus(),
+    repairOrders.getTopServices(10),
+    users.getUsersOverview(),
+  ]);
+
+  return {
+    orders_overview,
+    orders_revenue,
+    orders_by_status,
+    orders_top_services,
+    users_overview,
+  };
+};
 
 export default function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState<FullDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState<string | null>(null);
 
   // Fetch inicial de todos los datos
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        console.log("Loading initial dashboard data...");
         const data = await fetchFullDashboard();
         setDashboardData(data);
-        console.log("Initial dashboard data loaded");
       } catch (error) {
         console.error("Error loading dashboard:", error);
       } finally {
@@ -41,44 +68,60 @@ export default function AdminDashboard() {
     loadInitialData();
   }, []);
 
-  // WebSocket para actualizaciones en tiempo real
-  useWebSocket({
-    onDashboardUpdate: (message) => {
-      console.log(`Updating dashboard - Event: ${message.event}`);
-      
-      // Mostrar notificación cuando se crea una nueva orden
-      if (message.event === "REPAIR_ORDER_CREATED") {
-        setNotification("Nueva orden de reparación recibida");
-      }
-      
-      // Solo actualizar si ya tenemos datos iniciales cargados
-      if (!dashboardData) {
-        console.log("Ignoring update, waiting for initial data load");
-        return;
-      }
-      
-      // Actualizar solo las métricas que vinieron en el mensaje
-      setDashboardData((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          ...message.data,
-        };
-      });
-    },
-  });
+  const getStatusInfo = (status: string) => {
+    const statusMap: Record<string, { label: string; color: string; icon: JSX.Element }> = {
+      IN_REVIEW: { 
+        label: "En Revisión", 
+        color: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+        icon: <ClockIcon className="w-5 h-5" />
+      },
+      WAITING_APPROVAL: { 
+        label: "Esperando Aprobación", 
+        color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+        icon: <ClockIcon className="w-5 h-5" />
+      },
+      REJECTED: { 
+        label: "Rechazado", 
+        color: "bg-red-500/10 text-red-400 border-red-500/20",
+        icon: <XCircleIcon className="w-5 h-5" />
+      },
+      IN_REPAIR: { 
+        label: "En Reparación", 
+        color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+        icon: <WrenchScrewdriverIcon className="w-5 h-5" />
+      },
+      READY: { 
+        label: "Listo", 
+        color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+        icon: <CheckCircleIcon className="w-5 h-5" />
+      },
+      DELIVERED: { 
+        label: "Entregado", 
+        color: "bg-green-500/10 text-green-400 border-green-500/20",
+        icon: <CheckCircleIcon className="w-5 h-5" />
+      },
+    };
+    return statusMap[status] || { 
+      label: status, 
+      color: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+      icon: <ClockIcon className="w-5 h-5" />
+    };
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center h-screen bg-gray-950">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400">Cargando dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-gray-950">
         <div className="text-center">
           <p className="text-white text-xl mb-2">No hay datos disponibles</p>
           <p className="text-gray-400">Intenta recargar la página</p>
@@ -87,302 +130,340 @@ export default function AdminDashboard() {
     );
   }
 
-  const getStatusLabel = (status: string) => {
-    const labels: Record<string, string> = {
-      IN_REVIEW: "En Revisión",
-      WAITING_APPROVAL: "Esperando Aprobación",
-      REJECTED: "Rechazado",
-      IN_REPAIR: "En Reparación",
-      WAITING_PARTS: "Esperando Repuestos",
-      READY: "Listo",
-      DELIVERED: "Entregado",
-    };
-    return labels[status] || status;
-  };
+  const totalOrdersCount = dashboardData.orders_overview.totalOrders || 1;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="text-gray-400 mt-1">
-          Resumen general de las operaciones del taller
-        </p>
-      </div>
-
-      {/* KPIs Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard
-          title="Órdenes Activas"
-          value={dashboardData.orders_overview.activeOrders}
-          subtitle="En proceso"
-          icon={<ClipboardDocumentListIcon className="w-6 h-6 text-blue-500" />}
-          iconBgColor="bg-blue-500/10"
-        />
-        <KPICard
-          title="Facturación Total"
-          value={`$${dashboardData.orders_revenue.totalRevenue.toFixed(2)}`}
-          subtitle="Órdenes completadas"
-          icon={<CurrencyDollarIcon className="w-6 h-6 text-green-500" />}
-          iconBgColor="bg-green-500/10"
-        />
-        <KPICard
-          title="Clientes Activos"
-          value={dashboardData.users_overview.totalClients}
-          subtitle="Registrados"
-          icon={<UsersIcon className="w-6 h-6 text-purple-500" />}
-          iconBgColor="bg-purple-500/10"
-        />
-        <KPICard
-          title="Técnicos"
-          value={`${dashboardData.users_overview.activeTechnicians}/${dashboardData.users_overview.totalTechnicians}`}
-          subtitle="Disponibles"
-          icon={<WrenchScrewdriverIcon className="w-6 h-6 text-orange-500" />}
-          iconBgColor="bg-orange-500/10"
-        />
-      </div>
-
-      {/* Second Row - Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white text-lg font-semibold">
-              Resumen de Órdenes
-            </h3>
+    <div className="min-h-screen bg-gray-950 p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+            <p className="text-gray-400">
+              Vista general de las operaciones del taller
+            </p>
           </div>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 text-sm">Total</span>
-              <span className="text-white font-semibold">
+          <div className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+            <span className="text-sm text-emerald-400 font-medium">Sistema Activo</span>
+          </div>
+        </div>
+
+        {/* KPIs principales - Estilo Supabase */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Orders */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
+                <ClipboardDocumentListIcon className="w-5 h-5 text-blue-400" />
+              </div>
+              <span className="text-xs text-gray-500 font-medium">TOTAL</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-white">
                 {dashboardData.orders_overview.totalOrders}
-              </span>
+              </p>
+              <p className="text-sm text-gray-400">Órdenes registradas</p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 text-sm">Completadas</span>
-              <span className="text-green-400 font-semibold">
-                {dashboardData.orders_overview.completedOrders}
-              </span>
+          </div>
+
+          {/* Active Orders */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 bg-purple-500/10 border border-purple-500/20 rounded-lg flex items-center justify-center">
+                <WrenchScrewdriverIcon className="w-5 h-5 text-purple-400" />
+              </div>
+              <span className="text-xs text-gray-500 font-medium">ACTIVAS</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 text-sm">En Proceso</span>
-              <span className="text-blue-400 font-semibold">
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-white">
                 {dashboardData.orders_overview.activeOrders}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-400 text-sm">Costo Promedio</span>
-              <span className="text-white font-semibold">
-                ${dashboardData.orders_revenue.averageCost.toFixed(2)}
-              </span>
+              </p>
+              <p className="text-sm text-gray-400">En proceso</p>
             </div>
           </div>
+
+          {/* Revenue */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center">
+                <CurrencyDollarIcon className="w-5 h-5 text-emerald-400" />
+              </div>
+              <span className="text-xs text-gray-500 font-medium">INGRESOS</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-white">
+                ${Number(dashboardData.orders_revenue.totalRevenue).toFixed(0)}
+              </p>
+              <p className="text-sm text-gray-400">Facturación total</p>
+            </div>
+          </div>
+
+          {/* Users */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6 hover:border-gray-700 transition-colors">
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-lg flex items-center justify-center">
+                <UsersIcon className="w-5 h-5 text-cyan-400" />
+              </div>
+              <span className="text-xs text-gray-500 font-medium">CLIENTES</span>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-white">
+                {dashboardData.users_overview.totalClients}
+              </p>
+              <p className="text-sm text-gray-400">Registrados</p>
+            </div>
+          </div>
         </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white text-lg font-semibold">
-              Servicios Principales
-            </h3>
-          </div>
-          <div className="space-y-3">
-            {dashboardData.orders_top_services.topServices.slice(0, 4).map((service, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
-                    {service.serviceName}
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    {service.count} servicios
-                  </p>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Orders Overview */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center justify-center">
+                <ChartBarIcon className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">Resumen de Órdenes</h3>
+                <p className="text-xs text-gray-500">Estadísticas generales</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <span className="text-sm text-gray-400">Completadas</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-emerald-400">
+                    {dashboardData.orders_overview.completedOrders}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({((dashboardData.orders_overview.completedOrders / totalOrdersCount) * 100).toFixed(0)}%)
+                  </span>
                 </div>
-                <span className="text-green-400 font-semibold text-sm">
-                  ${service.revenue.toFixed(2)}
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <span className="text-sm text-gray-400">En Proceso</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-purple-400">
+                    {dashboardData.orders_overview.activeOrders}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({((dashboardData.orders_overview.activeOrders / totalOrdersCount) * 100).toFixed(0)}%)
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <span className="text-sm text-gray-400">Rechazadas</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-red-400">
+                    {dashboardData.orders_overview.rejectedOrders}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    ({((dashboardData.orders_overview.rejectedOrders / totalOrdersCount) * 100).toFixed(0)}%)
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
+                <span className="text-sm text-emerald-400 font-medium">Costo Promedio</span>
+                <span className="text-lg font-bold text-emerald-400">
+                  ${Number(dashboardData.orders_revenue.averageCost).toFixed(2)}
                 </span>
               </div>
-            ))}
+            </div>
           </div>
-        </div>
 
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-white text-lg font-semibold">Top Clientes</h3>
+          {/* Technicians */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-cyan-500/10 border border-cyan-500/20 rounded-lg flex items-center justify-center">
+                <UsersIcon className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">Personal</h3>
+                <p className="text-xs text-gray-500">Técnicos disponibles</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 bg-linear-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400">Total Técnicos</span>
+                  <span className="text-2xl font-bold text-cyan-400">
+                    {dashboardData.users_overview.totalTechnicians}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-linear-to-r from-cyan-500 to-blue-500 rounded-full transition-all"
+                    style={{ width: '100%' }}
+                  ></div>
+                </div>
+              </div>
+              <div className="p-4 bg-linear-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gray-400">Activos</span>
+                  <span className="text-2xl font-bold text-emerald-400">
+                    {dashboardData.users_overview.totalActiveTechnicians}
+                  </span>
+                </div>
+                <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-linear-to-r from-emerald-500 to-cyan-500 rounded-full transition-all"
+                    style={{ 
+                      width: `${(dashboardData.users_overview.totalActiveTechnicians / (dashboardData.users_overview.totalTechnicians || 1)) * 100}%` 
+                    }}
+                  ></div>
+                </div>
+              </div>
+              <div className="p-3 bg-gray-800/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">Tasa de Actividad</span>
+                  <span className="text-sm font-semibold text-white">
+                    {((dashboardData.users_overview.totalActiveTechnicians / (dashboardData.users_overview.totalTechnicians || 1)) * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="space-y-3">
-            {dashboardData.users_top_clients.topClients.slice(0, 4).map((client, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">
-                    {client.name}
-                  </p>
-                  <p className="text-gray-500 text-xs">
-                    {client.totalOrders} órdenes
+
+          {/* Revenue Stats */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex items-center justify-center">
+                <CurrencyDollarIcon className="w-5 h-5 text-emerald-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-white">Ingresos</h3>
+                <p className="text-xs text-gray-500">Análisis financiero</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="p-4 bg-linear-to-br from-emerald-500/10 to-green-500/10 border border-emerald-500/20 rounded-lg">
+                <p className="text-xs text-emerald-400 mb-2 font-medium">FACTURACIÓN TOTAL</p>
+                <p className="text-3xl font-bold text-white mb-1">
+                  ${Number(dashboardData.orders_revenue.totalRevenue).toFixed(2)}
+                </p>
+                <p className="text-xs text-gray-500">
+                  De {dashboardData.orders_revenue.completedOrdersCount} órdenes completadas
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-gray-800/50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Promedio</p>
+                  <p className="text-lg font-bold text-white">
+                    ${Number(dashboardData.orders_revenue.averageCost).toFixed(0)}
                   </p>
                 </div>
-                <span className="text-green-400 font-semibold text-sm">
-                  ${client.totalSpent.toFixed(2)}
-                </span>
+                <div className="p-3 bg-gray-800/50 rounded-lg">
+                  <p className="text-xs text-gray-500 mb-1">Completadas</p>
+                  <p className="text-lg font-bold text-white">
+                    {dashboardData.orders_revenue.completedOrdersCount}
+                  </p>
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Orders by Status */}
-        <ChartCard title="Órdenes por Estado" subtitle="Distribución actual">
-          <div className="space-y-3">
-            {dashboardData.orders_by_status.ordersByStatus
-              .filter((item) => item.count > 0)
-              .map((item, index) => {
-                const percentage = (
-                  (item.count / (dashboardData.orders_overview.totalOrders || 1)) *
-                  100
-                ).toFixed(1);
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Orders by Status - Gráfico de barras horizontal */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-white mb-1">Órdenes por Estado</h3>
+              <p className="text-xs text-gray-500">Distribución actual del sistema</p>
+            </div>
+            <div className="space-y-4">
+              {dashboardData.orders_by_status.ordersByStatus
+                .filter((item) => item.count > 0)
+                .sort((a, b) => b.count - a.count)
+                .map((item, index) => {
+                  const percentage = ((item.count / totalOrdersCount) * 100).toFixed(1);
+                  const statusInfo = getStatusInfo(item.status);
+                  return (
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className={`p-1.5 rounded-lg border ${statusInfo.color}`}>
+                            {statusInfo.icon}
+                          </div>
+                          <span className="text-sm text-gray-300 font-medium">
+                            {statusInfo.label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500">{percentage}%</span>
+                          <span className="text-sm font-bold text-white min-w-8 text-right">
+                            {item.count}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${statusInfo.color.includes('blue') ? 'bg-blue-500' : 
+                            statusInfo.color.includes('yellow') ? 'bg-yellow-500' :
+                            statusInfo.color.includes('red') ? 'bg-red-500' :
+                            statusInfo.color.includes('purple') ? 'bg-purple-500' :
+                            statusInfo.color.includes('emerald') ? 'bg-emerald-500' :
+                            'bg-green-500'} rounded-full transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+
+          {/* Top Services */}
+          <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
+            <div className="mb-6">
+              <h3 className="text-base font-semibold text-white mb-1">Servicios Principales</h3>
+              <p className="text-xs text-gray-500">Top 5 servicios más solicitados</p>
+            </div>
+            <div className="space-y-3">
+              {dashboardData.orders_top_services.topServices.slice(0, 5).map((service, index) => {
+                const maxRevenue = Math.max(...dashboardData.orders_top_services.topServices.map(s => Number(s.revenue)));
+                const percentage = ((Number(service.revenue) / maxRevenue) * 100).toFixed(0);
                 return (
-                  <div key={index}>
+                  <div key={index} className="group">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-gray-400 text-sm">
-                        {getStatusLabel(item.status)}
-                      </span>
-                      <span className="text-white font-medium text-sm">
-                        {item.count} ({percentage}%)
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="flex items-center justify-center w-8 h-8 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-400 font-bold text-sm shrink-0">
+                          {index + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-white font-medium truncate group-hover:text-blue-400 transition-colors">
+                            {service.serviceName}
+                          </p>
+                          <p className="text-xs text-gray-500">{service.count} servicios</p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-emerald-400 ml-3">
+                        ${Number(service.revenue).toFixed(0)}
                       </span>
                     </div>
-                    <div className="w-full bg-gray-800 rounded-full h-2">
+                    <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
                       <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
+                        className="h-full bg-linear-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
-                      />
+                      ></div>
                     </div>
                   </div>
                 );
               })}
-          </div>
-        </ChartCard>
-
-        {/* Top Technicians */}
-        <ChartCard title="Mejores Técnicos" subtitle="Por órdenes completadas">
-          <div className="space-y-4">
-            {dashboardData.users_top_technicians.topTechnicians.slice(0, 5).map((tech, index) => (
-              <div key={index} className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-800 rounded-full flex items-center justify-center shrink-0">
-                  <span className="text-white font-semibold text-sm">
-                    {tech.name.charAt(0)}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium text-sm truncate">
-                    {tech.name}
-                  </p>
-                  <p className="text-gray-400 text-xs">{tech.specialty}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-semibold text-sm">
-                    {tech.completedOrders}
-                  </p>
-                  <p className="text-gray-500 text-xs">órdenes</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-400 font-semibold text-sm">
-                    ${tech.revenue.toFixed(0)}
-                  </p>
-                  <p className="text-gray-500 text-xs">ingresos</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ChartCard>
-      </div>
-
-      {/* Activity Feed */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Orders */}
-        <div className="lg:col-span-2">
-          <ChartCard
-            title="Actividad Reciente"
-            subtitle="Últimas órdenes registradas"
-          >
-            <div className="space-y-2">
-              {dashboardData.orders_recent.recentOrders.map((order, index) => {
-                const isCompleted = order.status === "DELIVERED";
-                return (
-                  <ActivityItem
-                    key={index}
-                    icon={
-                      isCompleted ? (
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                      ) : (
-                        <ClockIcon className="w-5 h-5 text-blue-500" />
-                      )
-                    }
-                    title={`#${order.id.slice(0, 8)} - ${order.equipmentName}`}
-                    description={`${order.clientName} - ${getStatusLabel(
-                      order.status
-                    )}`}
-                    time={formatDate(order.createdAt)}
-                    iconBgColor={
-                      isCompleted ? "bg-green-500/10" : "bg-blue-500/10"
-                    }
-                  />
-                );
-              })}
             </div>
-          </ChartCard>
+          </div>
         </div>
 
-        {/* Alerts */}
-        <div>
-          <ChartCard title="Alertas" subtitle="Requieren atención">
-            <div className="space-y-3">
-              {dashboardData.orders_by_status.ordersByStatus
-                .filter(
-                  (item) => item.status === "WAITING_APPROVAL" && item.count > 0
-                )
-                .map((item, index) => (
-                  <AlertCard
-                    key={index}
-                    type="warning"
-                    title="Órdenes Pendientes"
-                    message={`${item.count} órdenes esperando aprobación`}
-                  />
-                ))}
-              {dashboardData.orders_by_status.ordersByStatus
-                .filter(
-                  (item) => item.status === "WAITING_PARTS" && item.count > 0
-                )
-                .map((item, index) => (
-                  <AlertCard
-                    key={index}
-                    type="info"
-                    title="Repuestos Pendientes"
-                    message={`${item.count} órdenes esperando repuestos`}
-                  />
-                ))}
-              {!dashboardData.orders_by_status.ordersByStatus.some(
-                (item) =>
-                  (item.status === "WAITING_APPROVAL" ||
-                    item.status === "WAITING_PARTS") &&
-                  item.count > 0
-              ) && (
-                <div className="text-center py-8">
-                  <CheckCircleIcon className="w-12 h-12 text-green-500 mx-auto mb-2" />
-                  <p className="text-gray-400 text-sm">Todo está al día</p>
-                </div>
-              )}
-            </div>
-          </ChartCard>
+        {/* Footer Info */}
+        <div className="flex items-center justify-between p-4 bg-gray-900/50 border border-gray-800 rounded-xl">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+            <span>Última actualización: {new Date().toLocaleString('es-ES')}</span>
+          </div>
+          <span className="text-xs text-gray-600 font-mono">v1.0.0</span>
         </div>
       </div>
-
-      {/* Notification Toast */}
-      {notification && (
-        <NotificationToast
-          message={notification}
-          type="info"
-          onClose={() => setNotification(null)}
-        />
-      )}
     </div>
   );
 }

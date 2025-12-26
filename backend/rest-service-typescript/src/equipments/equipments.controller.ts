@@ -32,7 +32,7 @@ export class EquipmentsController {
   }
 
   @Get(':id')
-  @Auth(UserRole.USER, UserRole.ADMIN)
+  @Auth(UserRole.USER, UserRole.ADMIN, UserRole.TECHNICIAN)
   findOne(@Param('id') id: string, @ActiveUser() user: JwtPayload) {
     return this.equipmentsService.findOne(id, user);
   }

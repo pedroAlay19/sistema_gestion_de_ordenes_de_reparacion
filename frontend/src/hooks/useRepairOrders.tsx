@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { getRepairOrders } from "../api/api";
-import { OrderRepairStatus } from "../types";
-import type { RepairOrder } from "../types";
+import { repairOrders } from "../api";
+import { OrderRepairStatus } from "../types/repair-order.types";
+import type { RepairOrder } from "../types/repair-order.types";
 
 export enum FilterType {
   ALL = "all",
@@ -18,7 +18,7 @@ export const useRepairOrders = () => {
     const loadOrders = async () => {
       setLoading(true);
       try {
-        const data = await getRepairOrders();
+        const data = await repairOrders.getAll();
         setOrders(data);
       } catch (err) {
         console.error("Error cargando órdenes:", err);

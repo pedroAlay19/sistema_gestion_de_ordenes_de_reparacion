@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { createEquipment } from "../../api/api";
-import type{ EquipmentFormData } from "../../types";
+import { equipments } from "../../api";
+import type { CreateEquipmentDto, EquipmentType } from "../../types/equipment.types";
 import { equipmentTypes } from "../../data/equipmentTypes";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 
 export default function NewEquipment() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState<EquipmentFormData>({
+  const [formData, setFormData] = useState<CreateEquipmentDto & { serialNumber: string }>({
     name: "",
-    type: "",
+    type: "" as EquipmentType,
     brand: "",
     model: "",
     serialNumber: "",
@@ -33,7 +34,7 @@ export default function NewEquipment() {
       console.log('Data a enviar:', dataToSubmit);
       console.log('Token disponible:', !!localStorage.getItem('access_token'));
       
-      const result = await createEquipment(dataToSubmit);
+      const result = await equipments.create(dataToSubmit);
       console.log('✅ Equipo creado exitosamente:', result);
       
       alert('Equipo registrado correctamente');
@@ -50,38 +51,26 @@ export default function NewEquipment() {
   return (
     <>
       {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
+      <div className="bg-slate-900 border-b border-gray-200 px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-1">
+            <h1 className="text-3xl  text-slate-300">
               Registrar Equipo
             </h1>
-            <p className="text-sm text-gray-600">Información básica</p>
+            <p className="text-sm text-gray-200 mt-2">Información básica</p>
           </div>
           <button
             onClick={() => navigate("/user/equipments")}
-            className="text-gray-600 hover:text-gray-900 transition-colors"
+            className="text-gray-200 hover:text-gray-500 transition-colors"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <XMarkIcon className="w-8 h-8" />
           </button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="max-w-2xl mx-auto">
         <div className="bg-white rounded-xl border border-gray-200 p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          <h2 className="text-2xl text-gray-900 mb-6">
             Información Básica
           </h2>
 
@@ -138,7 +127,6 @@ export default function NewEquipment() {
                 setFormData({ ...formData, brand: e.target.value })
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Ej: HP, Dell, Lenovo"
             />
           </div>
 
@@ -155,7 +143,6 @@ export default function NewEquipment() {
                 setFormData({ ...formData, model: e.target.value })
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Ej: Pavilion 15, Optiplex 7090"
             />
           </div>
 
@@ -172,7 +159,6 @@ export default function NewEquipment() {
                 setFormData({ ...formData, serialNumber: e.target.value })
               }
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Número de serie del equipo"
             />
           </div>
 

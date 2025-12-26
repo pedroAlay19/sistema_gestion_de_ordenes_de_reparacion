@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { getServices } from "../api/api";
+import { services } from "../api";
 import type { Service } from "../types/service.types";
+import { WrenchScrewdriverIcon, CheckCircleIcon } from "@heroicons/react/24/outline";
+import { equipmentTypes } from "../data/equipmentTypes";
 
 const Services = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -10,13 +12,17 @@ const Services = () => {
 
   useEffect(() => {
     const fetchServices = async () => {
-      const data = await getServices();
-      setServicesData(data);
+      const data = await services.getAll();
+      setServicesData(data.filter(s => s.active)); // Solo mostrar servicios activos
       console.log(data);
     };
 
     fetchServices();
   }, []);
+
+  const getEquipmentLabel = (value: string) => {
+    return equipmentTypes.find(e => e.value === value)?.label || value;
+  };
 
   const scrollToIndex = (index: number) => {
     if (scrollContainerRef.current) {
@@ -71,10 +77,10 @@ const Services = () => {
         {/* Header */}
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-semibold text-gray-900 mb-4 tracking-tight">
-            Nuestros servicios
+            Nuestros Servicios
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Soluciones profesionales para todos tus dispositivos
+            Soluciones profesionales especializadas para todos tus dispositivos electrónicos
           </p>
         </div>
 
@@ -87,43 +93,81 @@ const Services = () => {
             style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
           >
             {servicesData.map((service, index) => (
-              <div key={index} className="flex-none w-80 snap-center">
-                <div className="bg-white rounded-2xl p-8 h-full transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl border border-gray-100 cursor-pointer flex flex-col justify-between min-h-[400px]">
-                  {/* Icon */}
-                  <div className="mb-6 text-gray-900 group-hover:scale-110 transition-transform duration-300">
-                    {service.imageUrls && service.imageUrls.length > 0 ? (
-                      <img
-                        src={service.imageUrls[0]}
-                        alt={service.serviceName}
-                        className="w-12 h-12"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-200 rounded-full" /> // ícono vacío si no hay imagen
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="space-y-3">
-                    <h3 className="text-xl font-semibold text-gray-900">
-                      {service.serviceName}
-                    </h3>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      {service.description}
-                    </p>
-                    <div className="pt-4 border-t border-gray-100">
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-2xl font-semibold text-gray-900">
-                          {service.basePrice}
-                        </span>
-                        <span className="text-sm text-gray-500">desde</span>
-                      </div>
+              <div key={service.id || index} className="flex-none w-80 snap-center">
+                <div className="bg-white rounded-2xl p-6 h-full transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border border-gray-200 cursor-pointer flex flex-col justify-between min-h-[420px]">
+                  
+                  {/* Icon Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-900 to-gray-700 flex items-center justify-center shadow-lg">
+                      <WrenchScrewdriverIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="bg-gray-100 text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full">
+                      ${service.basePrice}
                     </div>
                   </div>
 
-                  {/* Button */}
-                  <button className="mt-6 w-full py-3 bg-black text-white text-sm font-medium rounded-full hover:bg-gray-800 transition-colors duration-200">
-                    Solicitar
-                  </button>
+                  {/* Content */}
+                  <div className="flex-1 space-y-4">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">
+                        {service.serviceName}
+                      </h3>
+                      <p className="text-gray-600 text-sm leading-relaxed line-clamp-3">
+                        {service.description}
+                      </p>
+                    </div>
+
+                    {/* Applicable Equipment Types */}
+                    {service.applicableEquipmentTypes && service.applicableEquipmentTypes.length > 0 && (
+                      <div className="pt-3 border-t border-gray-100">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                          Compatible con:
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {service.applicableEquipmentTypes.slice(0, 3).map((type) => (
+                            <span
+                              key={type}
+                              className="inline-flex items-center px-2.5 py-1 bg-gray-50 text-gray-700 text-xs font-medium rounded-lg border border-gray-200"
+                            >
+                              {getEquipmentLabel(type)}
+                            </span>
+                          ))}
+                          {service.applicableEquipmentTypes.length > 3 && (
+                            <span className="inline-flex items-center px-2.5 py-1 bg-gray-50 text-gray-500 text-xs font-medium rounded-lg">
+                              +{service.applicableEquipmentTypes.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes/Features */}
+                    {service.notes && (
+                      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 border border-gray-200">
+                        <div className="flex items-start gap-2">
+                          <CheckCircleIcon className="w-4 h-4 text-gray-700 flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-gray-700 leading-relaxed line-clamp-2">
+                            {service.notes}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Price Info Footer */}
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500 font-medium">
+                        Precio base desde:
+                      </span>
+                      <span className="text-lg font-bold text-gray-900">
+                        ${service.basePrice}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1 text-center">
+                      *El precio final puede variar según diagnóstico
+                    </p>
+                  </div>
                 </div>
               </div>
             ))}

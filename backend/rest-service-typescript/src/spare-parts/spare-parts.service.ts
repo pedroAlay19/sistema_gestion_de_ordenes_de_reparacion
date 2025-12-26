@@ -1,20 +1,70 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { SparePart } from './entities/spare-part.entity';
 import { CreateSparePartDto } from './dto/create-spare-part.dto';
 import { UpdateSparePartDto } from './dto/update-spare-part.dto';
+import { sparePartsSeed } from './seeds/spare-parts.seed';
 
 @Injectable()
-export class SparePartsService {
+export class SparePartsService implements OnModuleInit {
+    private readonly logger = new Logger(SparePartsService.name);
+  
   constructor(
     @InjectRepository(SparePart)
     private readonly sparePartRepository: Repository<SparePart>,
   ) {}
+
+  async onModuleInit() {
+    await this.seedSpareParts();
+  }
+
+  private async seedSpareParts() {
+      try {
+        const count = await this.sparePartRepository.count();
+  
+        if (count === 0) {
+          this.logger.log(
+            '🌱 No hay repuestos. Ejecutando semilla...',
+          );
+  
+          let successCount = 0;
+          let errorCount = 0;
+  
+          for (const sparePart of sparePartsSeed) {
+            try {
+              const newSparePart = this.sparePartRepository.create(sparePart);
+              await this.sparePartRepository.save(newSparePart);
+              successCount++;
+            } catch (error) {
+              this.logger.error(
+                `Error al crear ${sparePart.name}: ${error.message}`,
+              );
+              errorCount++;
+            }
+          }
+  
+          this.logger.log(
+            `✅ Semilla completada: ${successCount} repuestos creados, ${errorCount} errores`,
+          );
+        } else {
+          this.logger.log(
+            `✓ Ya existen ${count} repuestos en la base de datos`,
+          );
+        }
+      } catch (error) {
+        this.logger.error(
+          'Error al verificar o ejecutar la semilla de repuestos:',
+          error,
+        );
+      }
+    }
 
   async create(createSparePartDto: CreateSparePartDto) {
     const { name } = createSparePartDto;
@@ -73,7 +123,14 @@ export class SparePartsService {
   }
 
   // Decrementar el stock de un repuesto
-  async decreaseStock(partId: string, quantity: number): Promise<void> {
+  async decreaseStock(
+    partId: string,
+    quantity: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(SparePart)
+      : this.sparePartRepository;
     const part = await this.findOne(partId);
     if (part.stock < quantity) {
       throw new BadRequestException(
@@ -81,13 +138,25 @@ export class SparePartsService {
       );
     }
     part.stock -= quantity;
-    await this.sparePartRepository.save(part);
+    await repository.save(part);
   }
 
-  // Incrementar el stock de un repuesto
-  async increaseStock(partId: string, quantity: number): Promise<void> {
-    const part = await this.findOne(partId);
+  async increaseStock(
+    partId: string,
+    quantity: number,
+    manager?: EntityManager,
+  ): Promise<void> {
+    const repository = manager
+      ? manager.getRepository(SparePart)
+      : this.sparePartRepository;
+
+    const part = await repository.findOne({ where: { id: partId } });
+
+    if (!part) {
+      throw new NotFoundException(`Spare part with ID ${partId} not found`);
+    }
+
     part.stock += quantity;
-    await this.sparePartRepository.save(part);
+    await repository.save(part);
   }
 }

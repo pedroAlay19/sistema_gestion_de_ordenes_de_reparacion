@@ -9,7 +9,7 @@ import {
   PlusCircleIcon,
 } from "@heroicons/react/24/outline";
 import type { Equipment } from "../../types/equipment.types";
-import { EquipmentStatus } from "../../types";
+import { EquipmentStatus } from "../../types/equipment.types";
 
 interface EquipmentCardProps {
   equipment: Equipment;

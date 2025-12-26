@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import type { Technician } from "../../api";
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -21,16 +22,16 @@ const SignIn = () => {
       // Redirigir según el rol del usuario
       if (user.role === 'Technician') {
         // Técnico evaluador → Dashboard, técnico regular → Mis Tareas
-        const technicianUser = user as any;
+        const technicianUser = user as Technician;
         if (technicianUser.isEvaluator) {
-          navigate("/technician/dashboard");
+          navigate("/technician/orders");
         } else {
           navigate("/technician/my-tasks");
         }
       } else if (user.role === 'Admin') {
         navigate("/admin/dashboard");
       } else {
-        navigate("/user/dashboard");
+        navigate("/user/equipments");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al iniciar sesión");

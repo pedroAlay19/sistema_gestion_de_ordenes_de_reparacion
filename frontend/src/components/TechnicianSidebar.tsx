@@ -1,11 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  HomeIcon,
   WrenchScrewdriverIcon,
   UserIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../hooks/useAuth';
+import type { Technician } from '../types/technician.types';
 
 export default function TechnicianSidebar() {
   const location = useLocation();
@@ -14,32 +14,24 @@ export default function TechnicianSidebar() {
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Técnico NO evaluador ve "Mis Tareas", evaluador ve "Dashboard" y "Órdenes"
-  const isEvaluator = user?.isEvaluator === true;
+  // Técnico evaluador solo ve "Órdenes", técnico normal ve "Mis Tareas"
+  const isEvaluator = (user as Technician)?.isEvaluator === true;
 
-  const menuItems = [
-    ...(isEvaluator
-      ? [
-          {
-            path: '/technician/dashboard',
-            icon: HomeIcon,
-            label: 'Dashboard',
-          },
-          {
-            path: '/technician/orders',
-            icon: WrenchScrewdriverIcon,
-            label: 'Órdenes',
-          },
-        ]
-      : [
-          {
-            path: '/technician/my-tasks',
-            icon: WrenchScrewdriverIcon,
-            label: 'Mis Tareas',
-          },
-        ]
-    ),
-  ];
+  const menuItems = isEvaluator
+    ? [
+        {
+          path: '/technician/orders',
+          icon: WrenchScrewdriverIcon,
+          label: 'Órdenes',
+        },
+      ]
+    : [
+        {
+          path: '/technician/my-tasks',
+          icon: WrenchScrewdriverIcon,
+          label: 'Mis Tareas',
+        },
+      ];
 
   return (
     <div className="fixed left-0 top-0 h-screen w-20 bg-linear-to-b bg-black flex flex-col items-center py-8 z-50 shadow-xl">

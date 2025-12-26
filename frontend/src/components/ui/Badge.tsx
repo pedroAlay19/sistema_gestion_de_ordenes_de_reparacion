@@ -1,4 +1,4 @@
-import { OrderRepairStatus } from "../../types";
+import { OrderRepairStatus } from "../../types/repair-order.types";
 import { getOrderStatusBadge } from "../../utils";
 
 export type BadgeVariant =

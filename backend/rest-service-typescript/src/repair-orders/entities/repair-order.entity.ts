@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToOne,
+  BeforeUpdate,
 } from 'typeorm';
 import { Equipment } from '../../equipments/entities/equipment.entity';
 import { OrderRepairStatus } from './enum/order-repair.enum';
@@ -18,16 +19,16 @@ import { Technician } from '../../users/entities/technician.entity';
 @Entity('repair_order')
 export class RepairOrder {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @ManyToOne(() => Equipment, (equipment) => equipment.repairOrders)
-  equipment!: Equipment;
+  equipment: Equipment;
 
-  @ManyToOne(() => Technician, { nullable: true })
-  evaluatedBy?: Technician;
+  @ManyToOne(() => Technician)
+  evaluatedBy: Technician;
 
   @Column({ type: 'text' })
-  problemDescription!: string;
+  problemDescription: string;
 
   @Column({ type: 'text', array: true, nullable: true })
   imageUrls?: string[];
@@ -37,9 +38,6 @@ export class RepairOrder {
 
   @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
   estimatedCost?: number;
-
-  @Column({ type: 'numeric', precision: 12, scale: 2, nullable: true })
-  finalCost?: number;
 
   @Column({ type: 'date', nullable: true })
   warrantyStartDate?: Date;
@@ -52,10 +50,10 @@ export class RepairOrder {
     enum: OrderRepairStatus,
     default: OrderRepairStatus.IN_REVIEW,
   })
-  status!: OrderRepairStatus;
+  status: OrderRepairStatus;
 
   @OneToMany(() => RepairOrderDetail, (ts) => ts.repairOrder)
-  repairOrderDetails!: RepairOrderDetail[];
+  repairOrderDetails?: RepairOrderDetail[];
 
   @OneToMany(() => RepairOrderPart, (rp) => rp.repairOrder)
   repairOrderParts?: RepairOrderPart[];
@@ -74,4 +72,19 @@ export class RepairOrder {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  @BeforeUpdate()
+  setWarrantyDates() {
+    if (
+      this.status === OrderRepairStatus.DELIVERED &&
+      !this.warrantyStartDate
+    ) {
+      this.warrantyStartDate = new Date();
+
+      // 90 días de garantía 
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 90);
+      this.warrantyEndDate = endDate;
+    }
+  }
 }

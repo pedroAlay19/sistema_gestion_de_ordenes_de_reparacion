@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { CubeIcon, ClockIcon, PlayIcon } from "@heroicons/react/24/outline";
 import { repairOrders } from "../../../api";
-import { OrderRepairStatus } from "../../../types";
-import type { RepairOrder } from "../../../types";
+import { OrderRepairStatus, type RepairOrder } from "../../../types/repair-order.types";
 
 interface WaitingPartsInfoProps {
   order: RepairOrder;

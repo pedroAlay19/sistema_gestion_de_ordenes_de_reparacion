@@ -3,36 +3,36 @@ import { EquipmentStatus, EquipmentType } from "./enums/equipment.enum";
 import { User } from "../../users/entities/user.entity";
 import { RepairOrder } from "src/repair-orders/entities/repair-order.entity";
 
-@Entity('equipment')
+@Entity('equipments')
 export class Equipment {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @ManyToOne(() => User, user => user.equipments, {onDelete: 'CASCADE'})
-  user!: User;
+  user: User;
   
   @Column()
-  name!: string;
+  name: string;
 
   @Column({ type: 'enum', enum: EquipmentType})
-  type!: EquipmentType;
+  type: EquipmentType;
 
   @Column()
-  brand!: string;
+  brand: string;
 
   @Column()
-  model!: string;
+  model: string;
 
   @Column({nullable: true})
   serialNumber?: string;
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @Column({type: 'enum', enum: EquipmentStatus, default: EquipmentStatus.AVAILABLE})
-  currentStatus!: EquipmentStatus;
+  currentStatus: EquipmentStatus;
 
   @OneToMany(() => RepairOrder, rp => rp.equipment)
-  repairOrders!: RepairOrder[];
+  repairOrders: RepairOrder[];
 }
 

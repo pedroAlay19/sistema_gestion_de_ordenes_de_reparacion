@@ -13,11 +13,11 @@ export class CreateUserDto {
   @Transform(({ value }: { value: string }) => value.trim())
   @IsString()
   @IsNotEmpty()
-  name!: string;
+  name: string;
 
   @IsEmail()
   @IsNotEmpty()
-  email!: string;
+  email: string;
 
   @Transform(({ value }: { value: string }) => value.trim())
   @IsString()
@@ -27,13 +27,13 @@ export class CreateUserDto {
   // Pueden ser opcionales
   @IsString()
   @IsOptional()
-  lastName!: string;
+  lastName?: string;
 
   @IsString()
   @IsOptional()
-  phone!: string;
+  phone?: string;
 
   @IsString()
   @IsOptional()
-  address!: string;
+  address?: string;
 }

@@ -42,7 +42,6 @@ export class EquipmentsService {
     });
   }
 
-  // otro findOne que solo resiva id string
   async findOneById(id: string) {
     const equipment = await this.equipmentRepository.findOne({
       where: { id },
@@ -53,9 +52,21 @@ export class EquipmentsService {
     return equipment;
   }
 
+  async findOneAvailable(id: string) {
+    const equipment = await this.equipmentRepository.findOne({
+      where: { id, currentStatus: EquipmentStatus.AVAILABLE },
+      relations: ['user', 'repairOrders'],
+    });
+    if (!equipment)
+      throw new NotFoundException(
+        `Equipment with id ${id} not found or not available`,
+      );
+    return equipment;
+  }
+
   async findOne(id: string, user: JwtPayload) {
     const whereCondition =
-      user.role === UserRole.ADMIN ? { id } : { id, user: { id: user.sub } };
+      user.role === UserRole.ADMIN || UserRole.TECHNICIAN ? { id } : { id, user: { id: user.sub } };
 
     const equipment = await this.equipmentRepository.findOne({
       where: whereCondition,
@@ -66,7 +77,18 @@ export class EquipmentsService {
     return equipment;
   }
 
-  async update(id: string, updateEquipmentDto: UpdateEquipmentDto, user: JwtPayload) {
+  async findOneEquipment(id: string) {
+    const equipment = await this.equipmentRepository.findOneBy({ id });
+    if (!equipment)
+      throw new NotFoundException(`Equipment with id ${id} not found`);
+    return equipment;
+  }
+
+  async update(
+    id: string,
+    updateEquipmentDto: UpdateEquipmentDto,
+    user: JwtPayload,
+  ) {
     const equipmentFound = await this.findOne(id, user);
     Object.assign(equipmentFound, updateEquipmentDto);
     return await this.equipmentRepository.save(equipmentFound);
@@ -74,7 +96,7 @@ export class EquipmentsService {
 
   async remove(id: string, user: JwtPayload) {
     const equipment = await this.findOne(id, user);
-    await this.equipmentRepository.remove(equipment);
+    return await this.equipmentRepository.remove(equipment);
   }
 
   async updateStatus(id: string, status: EquipmentStatus) {

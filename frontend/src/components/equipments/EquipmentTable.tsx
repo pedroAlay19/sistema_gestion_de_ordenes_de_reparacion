@@ -7,17 +7,16 @@ import {
   ClockIcon,
   PlusCircleIcon,
   TrashIcon,
-  EyeIcon,
 } from "@heroicons/react/24/outline";
 import type { Equipment } from "../../types/equipment.types";
-import { EquipmentStatus } from "../../types";
+import { EquipmentStatus } from "../../types/equipment.types";
 
 interface EquipmentTableProps {
   equipments: Equipment[];
   onDelete: (id: string, name: string) => void;
   onRequestRepair: (equipmentId: string) => void;
-  onViewDetails: (equipmentId: string) => void;
   onEdit: (equipmentId: string) => void;
+  onViewHistory?: (equipment: Equipment) => void;
 }
 
 const getEquipmentIcon = (type: string) => {
@@ -75,8 +74,8 @@ export default function EquipmentTable({
   equipments,
   onDelete,
   onRequestRepair,
-  onViewDetails,
   onEdit,
+  onViewHistory,
 }: EquipmentTableProps) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
@@ -153,32 +152,31 @@ export default function EquipmentTable({
                 <td className="py-4 px-6">
                   <div className="flex items-center justify-end gap-1">
                     <button
-                      onClick={() => onViewDetails(equipment.id)}
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Ver detalles"
-                    >
-                      <EyeIcon className="w-5 h-5" />
-                    </button>
-                    <button
                       onClick={() => onEdit(equipment.id)}
                       className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                       title="Editar"
                     >
                       <PencilSquareIcon className="w-5 h-5" />
                     </button>
-                    <button
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Historial"
-                    >
-                      <ClockIcon className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => onRequestRepair(equipment.id)}
-                      className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Nueva orden"
-                    >
-                      <PlusCircleIcon className="w-5 h-5" />
-                    </button>
+                    {onViewHistory && (
+                      <button
+                        onClick={() => onViewHistory(equipment)}
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Historial"
+                      >
+                        <ClockIcon className="w-5 h-5" />
+                      </button>
+                    )}
+                    {/* Solo mostrar botón de nueva orden si el equipo está disponible */}
+                    {equipment.currentStatus === EquipmentStatus.AVAILABLE && (
+                      <button
+                        onClick={() => onRequestRepair(equipment.id)}
+                        className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="Nueva orden"
+                      >
+                        <PlusCircleIcon className="w-5 h-5" />
+                      </button>
+                    )}
                     <button
                       onClick={() => onDelete(equipment.id, equipment.name)}
                       className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"

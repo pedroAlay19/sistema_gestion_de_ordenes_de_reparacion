@@ -5,8 +5,8 @@ import {
   XMarkIcon,
 } from "@heroicons/react/24/outline";
 import React, { useState } from "react";
-import { createReview, updateReview } from "../../api";
-import type { Review } from "../../types";
+import type { Review } from "../../types/review.types";
+import { reviews } from "../../api";
 
 interface ReviewFormToggleProps {
   id: string;
@@ -31,12 +31,13 @@ export const ReviewFormToggle: React.FC<ReviewFormToggleProps> = ({
     try {
       let data: Review;
       if (review) {
-        data = await updateReview(review.id, {
+        data = await reviews.update(review.id, {
           rating,
           comment: comment.trim(),
         });
       } else {
-        data = await createReview(id, {
+        data = await reviews.create({
+          repairOrderId: id,
           rating,
           comment: comment.trim(),
         });

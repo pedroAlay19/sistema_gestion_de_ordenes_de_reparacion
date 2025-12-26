@@ -3,22 +3,18 @@ import { useNavigate } from "react-router-dom";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
-  Squares2X2Icon,
-  ListBulletIcon,
 } from "@heroicons/react/24/outline";
-import { getEquipments, deleteEquipment } from "../../api/api";
-import { EquipmentCard, EquipmentTable } from "../../components/equipments";
+import { equipments as equipmentsApi } from "../../api";
+import { EquipmentTable } from "../../components/equipments";
 import type { Equipment } from "../../types/equipment.types";
-import { EquipmentStatus } from "../../types";
+import { EquipmentStatus } from "../../types/equipment.types";
 
-type ViewMode = "grid" | "list";
 type FilterType = EquipmentStatus | "all";
 
 export default function MyEquipments() {
   const navigate = useNavigate();
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState<FilterType>("all");
 
@@ -29,7 +25,7 @@ export default function MyEquipments() {
   const loadEquipments = async () => {
     setLoading(true);
     try {
-      const data = await getEquipments();
+      const data = await equipmentsApi.getAll();
       setEquipments(data);
     } catch (error) {
       console.error("Error cargando equipos:", error);
@@ -42,7 +38,7 @@ export default function MyEquipments() {
     if (!confirm(`¿Eliminar ${name}?`)) return;
 
     try {
-      await deleteEquipment(id);
+      await equipmentsApi.delete(id);
       setEquipments(equipments.filter((e) => e.id !== id));
     } catch {
       alert("Error al eliminar");
@@ -53,12 +49,12 @@ export default function MyEquipments() {
     navigate("/user/repair-orders/new", { state: { equipmentId } });
   };
 
-  const handleViewDetails = (equipmentId: string) => {
-    navigate(`/user/equipments/${equipmentId}`);
-  };
-
   const handleEdit = (equipmentId: string) => {
     navigate(`/user/equipments/${equipmentId}/edit`);
+  };
+
+  const handleViewHistory = (equipment: Equipment) => {
+    navigate(`/user/equipments/${equipment.id}/history`);
   };
 
   const getFilteredEquipments = () => {
@@ -110,7 +106,7 @@ export default function MyEquipments() {
           </div>
           <button
             onClick={() => navigate("/user/equipments/new")}
-            className="bg-gray-200 text-gray-800 px-5 py-3 rounded-lg font-medium hover:bg-pink-300 transition-colors flex items-center gap-2"
+            className="bg-white text-slate-900 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
           >
             <PlusIcon className="w-5 h-5" />
             Agregar Equipo
@@ -134,7 +130,7 @@ export default function MyEquipments() {
             </div>
           </div>
 
-          {/* Filters and View Toggle */}
+          {/* Filters */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex gap-3">
               <button
@@ -188,35 +184,9 @@ export default function MyEquipments() {
                 </span>
               </button>
             </div>
-
-            {/* View Mode Toggle */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                title="Vista de tarjetas"
-              >
-                <Squares2X2Icon className="w-5 h-5" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 rounded-lg transition-colors ${
-                  viewMode === "list"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-                title="Vista de tabla"
-              >
-                <ListBulletIcon className="w-5 h-5" />
-              </button>
-            </div>
           </div>
 
-          {/* Equipment List/Grid */}
+          {/* Equipment List */}
           {filteredEquipments.length === 0 ? (
             <div className="bg-white rounded-lg border border-gray-200 shadow-sm text-center py-16">
               <div className="p-6">
@@ -244,27 +214,14 @@ export default function MyEquipments() {
                 )}
               </div>
             </div>
-          ) : viewMode === "list" ? (
+          ) : (
             <EquipmentTable
               equipments={filteredEquipments}
               onDelete={handleDelete}
               onRequestRepair={handleRequestRepair}
-              onViewDetails={handleViewDetails}
               onEdit={handleEdit}
+              onViewHistory={handleViewHistory}
             />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredEquipments.map((equipment) => (
-                <EquipmentCard
-                  key={equipment.id}
-                  equipment={equipment}
-                  onDelete={handleDelete}
-                  onRequestRepair={handleRequestRepair}
-                  onViewDetails={handleViewDetails}
-                  onEdit={handleEdit}
-                />
-              ))}
-            </div>
           )}
         </div>
       </div>

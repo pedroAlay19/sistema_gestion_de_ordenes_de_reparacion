@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getRepairOrder, getReviewByRepairOrderId } from "../../api/api";
+import { repairOrders, reviews } from "../../api";
 import type { RepairOrder } from "../../types/repair-order.types";
-import { OrderRepairStatus, type Review } from "../../types";
+import type { Review } from "../../types/review.types";
+import { OrderRepairStatus } from "../../types/repair-order.types";
 import { RepairTimeline } from "../../components/repairOrderDetail/repairTimeline";
 import { RepairOrderTopBar } from "../../components/repairOrderDetail/repairOrderTopBar";
 import { RepairApprovalActions } from "../../components/repairOrderDetail/RepairApprovalActions";
 import { ReviewFormToggle } from "../../components/repairOrderDetail/ReviewFormToggle";
-import { SideBar } from "../../components/repairOrderDetail/SideBar";
+import { SideBar } from "../../components/repairOrderDetail/Sidebar";
+import { CostBreakdown } from "../../components/repairOrderDetail/CostBreakdown";
 
 export default function RepairOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +22,7 @@ export default function RepairOrderDetail() {
       if (!id) return;
       setLoading(true);
       try {
-        const data = await getRepairOrder(id);
+        const data = await repairOrders.getById(id);
         setOrder(data);
       } catch (error) {
         console.error("Error:", error);
@@ -35,8 +37,9 @@ export default function RepairOrderDetail() {
     if (!id) return;
     const loadReview = async () => {
       try {
-        const data = await getReviewByRepairOrderId(id);
-        setReview(data);
+        const data = await reviews.findByRepairOrderId(id);
+        // findByRepairOrderId retorna un array, tomamos el primero si existe
+        setReview(data.length > 0 ? data[0] : null);
       } catch (error) {
         console.error("Error:", error);
       }
@@ -79,6 +82,9 @@ export default function RepairOrderDetail() {
             {/* Timeline Vertical */}
             <RepairTimeline order={order} />
 
+            {/* Cost Breakdown */}
+            <CostBreakdown order={order} />
+
             {/* Actions */}
             {order.status === OrderRepairStatus.WAITING_APPROVAL &&
               order.diagnosis && <RepairApprovalActions id={order.id} />}
@@ -94,7 +100,7 @@ export default function RepairOrderDetail() {
           </div>
 
           {/* Side Bar */}
-          <SideBar order={order} />
+          <SideBar order={order} showHistoryButton={false} />
         </div>
       </div>
     </>

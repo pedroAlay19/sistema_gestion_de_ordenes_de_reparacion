@@ -5,8 +5,7 @@ import {
   PaperAirplaneIcon 
 } from "@heroicons/react/24/outline";
 import { repairOrders } from "../../../api";
-import { OrderRepairStatus } from "../../../types";
-import type { RepairOrder } from "../../../types";
+import type { RepairOrder } from "../../../types/repair-order.types";
 
 interface InReviewActionsProps {
   order: RepairOrder;
@@ -34,10 +33,9 @@ export function InReviewActions({ order, onUpdate }: InReviewActionsProps) {
     setError(null);
 
     try {
-      const updatedOrder = await repairOrders.update(order.id, {
+      const updatedOrder = await repairOrders.evaluate(order.id, {
         diagnosis: diagnosis.trim(),
         estimatedCost: parseFloat(estimatedCost),
-        status: OrderRepairStatus.WAITING_APPROVAL,
       });
       onUpdate(updatedOrder);
     } catch (err) {

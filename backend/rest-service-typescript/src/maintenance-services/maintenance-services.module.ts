@@ -4,12 +4,12 @@ import { MaintenanceServicesController } from './maintenance-services.controller
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MaintenanceService } from './entities/maintenance-service.entity';
 import { HttpModule } from '@nestjs/axios';
-import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
+import { EquipmentsModule } from 'src/equipments/equipments.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([MaintenanceService]),HttpModule],
+  imports: [TypeOrmModule.forFeature([MaintenanceService]), HttpModule, EquipmentsModule],
   controllers: [MaintenanceServicesController],
-  providers: [MaintenanceServicesService, WebSocketNotificationService],
+  providers: [MaintenanceServicesService],
   exports: [MaintenanceServicesService]
 })
 export class MaintenanceServicesModule {}

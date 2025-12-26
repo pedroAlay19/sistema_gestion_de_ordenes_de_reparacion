@@ -4,25 +4,25 @@ import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, Up
 @Entity('spare_part')
 export class SparePart {
     @PrimaryGeneratedColumn('uuid')
-      id!: string;
+      id: string;
     
       @Column()
-      name!: string;
+      name: string;
     
       @Column({type: 'text'})
-      description!: string;
+      description: string;
     
       @Column({ type: 'int', default: 0 })
-      stock!: number;
+      stock: number;
     
       @Column({ type: 'numeric', precision: 12, scale: 2, default: 0})
-      unitPrice!: number;
+      unitPrice: number;
     
       @CreateDateColumn()
-      createdAt!: Date;
+      createdAt: Date;
     
       @UpdateDateColumn()
-      updatedAt!: Date;
+      updatedAt: Date;
     
       @OneToMany(() => RepairOrderPart, rp => rp.part)
       repairOrderParts?: RepairOrderPart[];

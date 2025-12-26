@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { users, getProfile, type UpdateUserDto } from "../../api/api";
-import type { User } from "../../types";
+import { users, auth, type UpdateUserDto } from "../../api";
+import type { User } from "../../types/user.types";
 
 export function Profile() {
   const [profileData, setProfileData] = useState<User | null>(null);
@@ -27,7 +27,7 @@ export function Profile() {
       setLoading(true);
       const token = localStorage.getItem("access_token");
       if (token) {
-        const profile = await getProfile(token);
+        const profile = await auth.getProfile(token);
         setProfileData(profile);
         setFormData({
           name: profile.name || "",
@@ -68,13 +68,13 @@ export function Profile() {
         updateData.address = formData.address;
       }
 
-      await users.updateProfile(updateData);
+      await users.updateUserProfile(updateData);
       await loadUserProfile();
       setSuccess(true);
       setIsEditing(false);
 
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error al actualizar perfil:", err);
       setError(err?.message || "Error al actualizar el perfil");
     } finally {
@@ -279,44 +279,6 @@ export function Profile() {
                         : "bg-gray-50 text-gray-600"
                     }`}
                   />
-                </div>
-
-                {/* Fechas */}
-                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-gray-200">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cuenta creada
-                    </label>
-                    <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 text-sm">
-                      {profileData?.createdAt
-                        ? new Date(profileData.createdAt).toLocaleDateString(
-                            "es-ES",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          )
-                        : "N/A"}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Última actualización
-                    </label>
-                    <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 text-sm">
-                      {profileData?.updatedAt
-                        ? new Date(profileData.updatedAt).toLocaleDateString(
-                            "es-ES",
-                            {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
-                            }
-                          )
-                        : "N/A"}
-                    </div>
-                  </div>
                 </div>
               </div>
 

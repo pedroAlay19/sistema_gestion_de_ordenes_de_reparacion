@@ -1,31 +1,25 @@
 import { http } from './http';
-import type { Review, BestReview } from '../types';
-
-export interface CreateReviewDto {
-  rating: number;
-  comment: string;
-  repairOrderId: string;
-}
-
-export interface UpdateReviewDto {
-  rating: number;
-  comment: string;
-  visible: boolean;
-}
+import type { Review, BestReview, CreateRepairOrderReviewDto, UpdateRepairOrderReviewDto } from '../types/review.types';
 
 export const reviews = {
-  create: (data: CreateReviewDto) =>
+  create: (data: CreateRepairOrderReviewDto) =>
     http.post<Review>('/repair-order-reviews', data, true),
   
   getBest: () =>
     http.get<BestReview[]>('/repair-order-reviews/best-reviews'),
 
   findByRepairOrderId: (repairOrderId: string) =>
-    http.get<Review>(`/repair-order-reviews/${repairOrderId}`, true),
+    http.get<Review[]>(`/repair-order-reviews/repair-order/${repairOrderId}`, true),
 
-  findByRole: () =>
+  findAll: () =>
     http.get<Review[]>('/repair-order-reviews', true),
 
-  update: (reviewId: string, data: UpdateReviewDto) =>
+  findOne: (id: string) =>
+    http.get<Review>(`/repair-order-reviews/${id}`, true),
+
+  update: (reviewId: string, data: UpdateRepairOrderReviewDto) =>
     http.patch<Review>(`/repair-order-reviews/${reviewId}`, data, true),
+
+  delete: (reviewId: string) =>
+    http.delete<void>(`/repair-order-reviews/${reviewId}`, true),
 };

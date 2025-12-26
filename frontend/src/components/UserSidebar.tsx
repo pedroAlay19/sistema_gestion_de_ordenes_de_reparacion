@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { ArrowLeftCircleIcon, BellIcon, ChartBarIcon, ComputerDesktopIcon, HomeIcon, StarIcon, UserCircleIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
+import { ArrowLeftCircleIcon, ComputerDesktopIcon, HomeIcon, StarIcon, UserCircleIcon, WrenchScrewdriverIcon } from '@heroicons/react/24/outline';
 
 export default function UserSidebar() {
   const location = useLocation();
@@ -10,13 +10,6 @@ export default function UserSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   const menuItems = [
-    {
-      path: '/user/dashboard',
-      icon: (
-        <ChartBarIcon className="w-6 h-6" />
-      ),
-      label: 'Dashboard',
-    },
     {
       path: '/user/equipments',
       icon: (
@@ -30,13 +23,6 @@ export default function UserSidebar() {
         <WrenchScrewdriverIcon className="w-6 h-6" />
       ),
       label: 'Órdenes',
-    },
-    {
-      path: '/user/notifications',
-      icon: (
-        <BellIcon className="w-6 h-6" />
-      ),
-      label: 'Notificaciones',
     },
     {
       path: '/user/reviews',

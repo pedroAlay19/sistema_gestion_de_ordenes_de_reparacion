@@ -1,10 +1,10 @@
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
-import type { MaintenanceService } from "../../../types";
+import type { Service } from "../../../types/service.types";
 
 interface AvailableServicesListProps {
-  services: MaintenanceService[];
+  services: Service[];
   selectedServiceIds: string[];
-  onSelectService: (service: MaintenanceService) => void;
+  onSelectService: (service: Service) => void;
 }
 
 export function AvailableServicesList({

@@ -1,5 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react';
-import { login, register, getProfile } from '../api/api';
+import { auth } from '../api';
 import { AuthContext } from './authContextInstance';
 import type { User } from '../types/auth.types';
 
@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const token = localStorage.getItem('access_token');
         if (token) {
-          const userData = await getProfile(token);
+          const userData = await auth.getProfile(token);
           setUser(userData);
         }
       } catch {
@@ -28,17 +28,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Login
   const signIn = async (email: string, password: string): Promise<User> => {
-    const response = await login(email, password);
+    const response = await auth.login(email, password);
     localStorage.setItem('access_token', response.access_token);
     
-    const userData = await getProfile(response.access_token);
+    const userData = await auth.getProfile(response.access_token);
     setUser(userData);
     return userData;
   };
 
   // Registro
   const signUp = async (name: string, email: string, password: string) => {
-    await register(name, email, password);
+    await auth.register({ name, email, password });
     await signIn(email, password);
   };
 

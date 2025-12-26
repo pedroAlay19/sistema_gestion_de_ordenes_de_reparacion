@@ -1,5 +1,5 @@
 import type { Dispatch, SetStateAction } from "react";
-import { OrderRepairStatus, type RepairOrder } from "../../types";
+import { OrderRepairStatus, type RepairOrder } from "../../types/repair-order.types";
 import { FilterType } from "../../hooks/useRepairOrders";
 
 interface OrdersFilterProps {

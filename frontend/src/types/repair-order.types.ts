@@ -1,135 +1,52 @@
 import type { JSX } from "react";
+import type { Equipment } from "./equipment.types";
+import type { Technician } from "./technician.types";
+import type { CreateRepairOrderDetailDto, RepairOrderDetail } from "./repair-order-detail.types";
+import type { CreateRepairOrderPartDto, RepairOrderPart } from "./repair-order-part.types";
+import type { Review } from "./review.types";
 
-// Estados principales de la orden de reparación
 export enum OrderRepairStatus {
   IN_REVIEW = "IN_REVIEW",
   WAITING_APPROVAL = "WAITING_APPROVAL",
   REJECTED = "REJECTED",
   IN_REPAIR = "IN_REPAIR",
-  WAITING_PARTS = "WAITING_PARTS",
   READY = "READY",
   DELIVERED = "DELIVERED"
 }
 
-// Estados de servicios individuales dentro de una orden
-export enum TicketServiceStatus {
-  PENDING = "PENDING",
-  IN_PROGRESS = "IN_PROGRESS",
-  COMPLETED = "COMPLETED"
-}
-
-// Estados de notificaciones
-export enum NotificationStatus {
-  SENT = "SENT",
-  READ = "READ"
-}
-
-// Usuario básico (para relaciones)
-export interface User {
-  id: string;
-  name: string;
-  lastName?: string;
-  email: string;
-  phone?: string;
-  address?: string;
-  role: string;
-}
-
-// Técnico (hereda de User)
-export interface Technician extends User {
-  specialty: string;
-  experienceYears: number;
-  active: boolean;
-}
-
-// Servicio de mantenimiento
-export interface MaintenanceService {
-  id: string;
-  serviceName: string;
-  description: string;
-  basePrice: number;
-  estimatedTimeMinutes?: number;
-  requiresParts?: boolean;
-  type: string;
+export interface CreateRepairOrderDto {
+  equipmentId: string;
+  problemDescription: string;
   imageUrls?: string[];
-  active?: boolean;
-  notes?: string;
 }
 
-// Detalle de servicio asignado a un técnico dentro de una orden
-export interface RepairOrderDetail {
-  id: string;
-  service: MaintenanceService;
-  technician: Technician;
-  unitPrice: number;
-  discount?: number;
-  subTotal: number;
-  status: TicketServiceStatus;
-  imageUrl?: string;
-  notes: string;
-  createdAt: string;
-  updatedAt: string;
+export interface EvaluateRepairOrderDto {
+  diagnosis: string;
+  estimatedCost: number;
 }
 
-// Pieza de repuesto utilizada en la orden
-export interface SparePart {
-  id: string;
-  name: string;
-  description: string;
-  stock: number;
-  unitPrice: number;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-// Relación de pieza usada en una orden
-export interface RepairOrderPart {
-  id: string;
-  part: SparePart;
-  quantity: number;
-  subTotal: number;
-  imgUrl?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Reseña de una orden de reparación
-export interface RepairOrderReview {
-  id: string;
-  rating: number;
-  comment: string;
-  visible: boolean;
-  createdAt: string;
-  updatedAt: string;
+export interface AssignRepairWorkDto {
+  details: CreateRepairOrderDetailDto[];
+  parts?: CreateRepairOrderPartDto[];
 }
 
 // Orden de reparación completa
 export interface RepairOrder {
   id: string;
-  diagnosis?: string;
+  equipment: Equipment
+  evaluatedBy: Technician;
   problemDescription: string;
-  status: OrderRepairStatus;
-  evaluatedBy?: User;
-  estimatedCost?: number;
-  finalCost?: number;
   imageUrls?: string[];
+  diagnosis?: string;
+  estimatedCost?: number;
   warrantyStartDate?: string;
   warrantyEndDate?: string;
-  createdAt: string;
-  updatedAt: string;
-  review?: RepairOrderReview;
+  status: OrderRepairStatus;
   repairOrderDetails?: RepairOrderDetail[];
   repairOrderParts?: RepairOrderPart[];
-  equipment: {
-    id: string;
-    name: string;
-    type: string;
-    brand: string;
-    model: string;
-    serialNumber?: string;
-    user?: User;
-  };
-  
+  reviews?: Review[];
+  createdAt: string;
+  updatedAt: string; 
 }
 
 
@@ -141,4 +58,32 @@ export interface RepairStep {
   status: StepStatus;
   date?: string;
   description: string;
+}
+
+export interface OrdersOverview {
+  totalOrders: number;
+  activeOrders: number;
+  rejectedOrders: number;
+  completedOrders: number;
+}
+
+export interface RevenueStats {
+  totalRevenue: number;
+  averageCost: number;
+  completedOrdersCount: number;
+}
+
+export interface OrdersByStatus {
+  ordersByStatus: Array<{
+    status: string;
+    count: number;
+  }>;
+}
+
+export interface TopServices {
+  topServices: Array<{
+    serviceName: string;
+    count: number;
+    revenue: number;
+  }>;
 }

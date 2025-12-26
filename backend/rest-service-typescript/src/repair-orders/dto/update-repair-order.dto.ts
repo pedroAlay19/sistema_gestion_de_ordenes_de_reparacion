@@ -1,51 +1,33 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsDateString,
-  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  Min,
   ValidateNested,
 } from 'class-validator';
-import { UpdateRepairOrderDetailDto } from './details/update-repair-order-detail';
-import { OrderRepairStatus } from '../entities/enum/order-repair.enum';
-import { UpdateRepairOrderPartDto } from './parts/update-repair-order-part.dto';
+import { CreateRepairOrderDetailDto } from './details/create-repair-order-detail.dto';
+import { CreateRepairOrderPartDto } from './parts/create-repair-order-part.dto';
 
-export class UpdateRepairOrderDto {
-  @IsOptional()
+export class EvaluateRepairOrderDto {
   @IsString()
-  problemDescription?: string;
+  diagnosis: string;
 
-  @IsOptional()
-  @IsString()
-  diagnosis?: string;
-
-  @IsOptional()
   @IsNumber()
-  estimatedCost?: number;
+  @Min(0)
+  estimatedCost: number;
+}
+
+export class AssignRepairWorkDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateRepairOrderDetailDto)
+  details: CreateRepairOrderDetailDto[];
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => UpdateRepairOrderDetailDto)
-  details?: UpdateRepairOrderDetailDto[];
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => UpdateRepairOrderPartDto)
-  parts?: UpdateRepairOrderPartDto[];
-
-  @IsOptional()
-  @IsDateString()
-  warrantyStartDate?: Date;
-
-  @IsOptional()
-  @IsDateString()
-  warrantyEndDate?: Date;
-
-  @IsOptional()
-  @IsEnum(OrderRepairStatus)
-  status?: OrderRepairStatus;
+  @Type(() => CreateRepairOrderPartDto)
+  parts?: CreateRepairOrderPartDto[];
 }

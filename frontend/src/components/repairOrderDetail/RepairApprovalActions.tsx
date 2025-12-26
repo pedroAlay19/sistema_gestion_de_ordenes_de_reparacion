@@ -4,14 +4,18 @@ import {
   XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { repairOrders } from "../../api";
-import { OrderRepairStatus } from "../../types";
 import { useNavigate } from "react-router-dom";
 
 export const RepairApprovalActions: React.FC<{ id: string }> = ({ id }) => {
   const navigate = useNavigate();
 
-  const handleApprove = async (status: OrderRepairStatus) => {
-    await repairOrders.update(id, { status });
+  const handleApprove = async () => {
+    await repairOrders.approve(id);
+    navigate("/user/repair-orders");
+  };
+
+  const handleReject = async () => {
+    await repairOrders.reject(id);
     navigate("/user/repair-orders");
   };
 
@@ -40,7 +44,7 @@ export const RepairApprovalActions: React.FC<{ id: string }> = ({ id }) => {
 
       <div className="flex gap-4">
         <button
-          onClick={() => handleApprove(OrderRepairStatus.IN_REPAIR)}
+          onClick={handleApprove}
           className="flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-4 rounded-xl font-medium hover:bg-blue-700 active:scale-[0.98] transition-all shadow-sm"
         >
           <CheckCircleIcon className="w-5 h-5" />
@@ -48,7 +52,7 @@ export const RepairApprovalActions: React.FC<{ id: string }> = ({ id }) => {
         </button>
 
         <button
-          onClick={() => handleApprove(OrderRepairStatus.REJECTED)}
+          onClick={handleReject}
           className="flex-1 flex items-center justify-center gap-2 border-2 border-red-500 text-red-600 px-6 py-4 rounded-xl font-medium hover:bg-red-50 active:scale-[0.98] transition-all"
         >
           <XCircleIcon className="w-5 h-5" />

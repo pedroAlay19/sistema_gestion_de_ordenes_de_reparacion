@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { http } from "../../api/http";
 import {
   WrenchScrewdriverIcon,
   ClockIcon,
@@ -7,64 +6,37 @@ import {
   PlayIcon,
   PencilIcon,
   XMarkIcon,
-  CurrencyDollarIcon,
-  TagIcon,
-  CalculatorIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
-
-interface RepairOrderDetail {
-  id: string;
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
-  unitPrice: number;
-  discount?: number;
-  subTotal: number;
-  imageUrl?: string;
-  notes?: string;
-  createdAt: string;
-  service: {
-    serviceName: string;
-    type: string;
-  };
-  repairOrder: {
-    id: string;
-    problemDescription: string;
-    status: string;
-    equipment: {
-      name: string;
-      brand: string;
-      model: string;
-      user: {
-        name: string;
-        email: string;
-      };
-    };
-  };
-}
+import { repairOrders } from "../../api";
+import { TicketServiceStatus, type RepairOrderDetail, type UpdateDetailStatusDto } from "../../types/repair-order-detail.types";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function MyAssignedDetails() {
+  const { user } = useAuth();
   const [details, setDetails] = useState<RepairOrderDetail[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"ALL" | "PENDING" | "IN_PROGRESS" | "COMPLETED">("ALL");
   const [showModal, setShowModal] = useState(false);
   const [selectedDetail, setSelectedDetail] = useState<RepairOrderDetail | null>(null);
-  const [formData, setFormData] = useState({
-    status: "",
-    unitPrice: 0,
-    discount: 0,
-    imageUrl: "",
+  const [formData, setFormData] = useState<UpdateDetailStatusDto>({
+    status: "" as TicketServiceStatus,
     notes: "",
   });
 
   useEffect(() => {
-    loadDetails();
-  }, []);
+    if (user?.id) {
+      loadDetails();
+    }
+  }, [user]);
 
   const loadDetails = async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
-      const data = await http.get("/repair-orders/technician/my-details", true);
-      setDetails(data as RepairOrderDetail[]);
+      const data = await repairOrders.getMyDetails(user.id);
+      setDetails(data);
     } catch (error) {
       console.error("Error loading details:", error);
     } finally {
@@ -76,9 +48,6 @@ export default function MyAssignedDetails() {
     setSelectedDetail(detail);
     setFormData({
       status: detail.status,
-      unitPrice: detail.unitPrice,
-      discount: detail.discount || 0,
-      imageUrl: detail.imageUrl || "",
       notes: detail.notes || "",
     });
     setShowModal(true);
@@ -94,11 +63,7 @@ export default function MyAssignedDetails() {
     if (!selectedDetail) return;
 
     try {
-      await http.patch(
-        `/repair-orders/technician/detail/${selectedDetail.id}`,
-        formData,
-        true
-      );
+      await repairOrders.updateDetailStatus(selectedDetail.id, formData);
       await loadDetails();
       handleCloseModal();
     } catch (error) {
@@ -107,13 +72,9 @@ export default function MyAssignedDetails() {
     }
   };
 
-  const handleUpdateStatus = async (detailId: string, newStatus: string) => {
+  const handleUpdateStatus = async (detailId: string, newStatus: TicketServiceStatus) => {
     try {
-      await http.patch(
-        `/repair-orders/technician/detail/${detailId}/status`,
-        { status: newStatus },
-        true
-      );
+      await repairOrders.updateDetailStatus(detailId, { status: newStatus });
       await loadDetails();
     } catch (error) {
       console.error("Error updating status:", error);
@@ -124,13 +85,26 @@ export default function MyAssignedDetails() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "PENDING":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
+        return "bg-slate-100 text-slate-700 border-slate-200";
       case "IN_PROGRESS":
-        return "bg-blue-100 text-blue-800 border-blue-300";
+        return "bg-slate-900 text-white border-slate-900";
       case "COMPLETED":
-        return "bg-green-100 text-green-800 border-green-300";
+        return "bg-white text-slate-900 border-slate-300";
       default:
         return "bg-gray-100 text-gray-800 border-gray-300";
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "PENDING":
+        return <ClockIcon className="w-3.5 h-3.5" />;
+      case "IN_PROGRESS":
+        return <PlayIcon className="w-3.5 h-3.5" />;
+      case "COMPLETED":
+        return <CheckCircleIcon className="w-3.5 h-3.5" />;
+      default:
+        return null;
     }
   };
 
@@ -160,207 +134,204 @@ export default function MyAssignedDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Mis Tareas Asignadas</h1>
-          <p className="text-gray-600 mt-1">
-            Servicios de mantenimiento asignados a ti
-          </p>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-              <WrenchScrewdriverIcon className="w-12 h-12 text-blue-500" />
+    <div className="min-h-screen bg-white">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2.5 bg-slate-900 rounded-lg">
+              <WrenchScrewdriverIcon className="w-6 h-6 text-white" />
             </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Pendientes</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.pending}</p>
-              </div>
-              <ClockIcon className="w-12 h-12 text-yellow-500" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-600">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">En Progreso</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.inProgress}</p>
-              </div>
-              <PlayIcon className="w-12 h-12 text-blue-600" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Completadas</p>
-                <p className="text-3xl font-bold text-gray-900">{stats.completed}</p>
-              </div>
-              <CheckCircleIcon className="w-12 h-12 text-green-500" />
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Mis Tareas</h1>
+              <p className="text-sm text-slate-500">
+                Servicios asignados para completar
+              </p>
             </div>
           </div>
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex gap-2">
+        <div className="mb-6 border-b border-slate-200">
+          <div className="flex gap-1">
             <button
               onClick={() => setFilter("ALL")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                 filter === "ALL"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-slate-900"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              Todos ({stats.total})
+              Todas <span className="text-slate-400">({stats.total})</span>
+              {filter === "ALL" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+              )}
             </button>
             <button
               onClick={() => setFilter("PENDING")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                 filter === "PENDING"
-                  ? "bg-yellow-500 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-slate-900"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              Pendientes ({stats.pending})
+              Pendientes <span className="text-slate-400">({stats.pending})</span>
+              {filter === "PENDING" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+              )}
             </button>
             <button
               onClick={() => setFilter("IN_PROGRESS")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                 filter === "IN_PROGRESS"
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-slate-900"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              En Progreso ({stats.inProgress})
+              En Progreso <span className="text-slate-400">({stats.inProgress})</span>
+              {filter === "IN_PROGRESS" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+              )}
             </button>
             <button
               onClick={() => setFilter("COMPLETED")}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`px-4 py-2.5 text-sm font-medium transition-all relative ${
                 filter === "COMPLETED"
-                  ? "bg-green-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  ? "text-slate-900"
+                  : "text-slate-500 hover:text-slate-700"
               }`}
             >
-              Completadas ({stats.completed})
+              Completadas <span className="text-slate-400">({stats.completed})</span>
+              {filter === "COMPLETED" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900" />
+              )}
             </button>
           </div>
         </div>
 
         {/* Details List */}
         {loading ? (
-          <div className="flex items-center justify-center py-12 bg-white rounded-lg shadow">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex items-center justify-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-2 border-slate-200 border-t-slate-900"></div>
           </div>
         ) : filteredDetails.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <WrenchScrewdriverIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg">No tienes tareas asignadas</p>
+          <div className="py-20 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-100 rounded-full mb-4">
+              <WrenchScrewdriverIcon className="w-8 h-8 text-slate-400" />
+            </div>
+            <p className="text-slate-500">No hay tareas para mostrar</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4">
+          <div className="space-y-3">
             {filteredDetails.map((detail) => (
               <div
                 key={detail.id}
-                className="bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
+                className="group border border-slate-200 rounded-xl p-6 hover:border-slate-300 hover:shadow-sm transition-all"
               >
+                {/* Header */}
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-slate-900">
                         {detail.service.serviceName}
                       </h3>
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(
                           detail.status
                         )}`}
                       >
+                        {getStatusIcon(detail.status)}
                         {getStatusText(detail.status)}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">
-                      Tipo: {detail.service.type}
-                    </p>
+                    <div className="flex items-center gap-4 text-sm text-slate-500">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
+                        {detail.repairOrder.equipment.name}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 bg-slate-300 rounded-full"></span>
+                        {detail.repairOrder.equipment.user.name}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Valor</p>
-                    <p className="text-xl font-bold text-gray-900">
-                      ${detail.subTotal}
+                  <div className="text-right ml-4">
+                    <p className="text-xs text-slate-500 mb-0.5">Valor</p>
+                    <p className="text-xl font-bold text-slate-900">
+                      ${detail.repairPrice}
                     </p>
                   </div>
                 </div>
 
-                {/* Order Info */}
-                <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                  <p className="text-sm font-medium text-gray-700 mb-2">
-                    Información de la Orden:
+                {/* Problem Description */}
+                <div className="bg-slate-50 rounded-lg p-4 mb-4">
+                  <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                    Descripción del Problema
                   </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    <span className="font-medium">Problema:</span>{" "}
+                  <p className="text-sm text-slate-700 leading-relaxed">
                     {detail.repairOrder.problemDescription}
                   </p>
-                  <p className="text-sm text-gray-600 mb-1">
-                    <span className="font-medium">Equipo:</span>{" "}
-                    {detail.repairOrder.equipment.name} -{" "}
-                    {detail.repairOrder.equipment.brand}{" "}
-                    {detail.repairOrder.equipment.model}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Cliente:</span>{" "}
-                    {detail.repairOrder.equipment.user.name} ({detail.repairOrder.equipment.user.email})
-                  </p>
+                </div>
+
+                {/* Equipment Details */}
+                <div className="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Equipo</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {detail.repairOrder.equipment.brand} {detail.repairOrder.equipment.model}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-500 mb-1">Contacto</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      {detail.repairOrder.equipment.user.email}
+                    </p>
+                  </div>
                 </div>
 
                 {/* Notes */}
                 {detail.notes && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-1">Notas:</p>
-                    <p className="text-sm text-gray-600">{detail.notes}</p>
+                  <div className="mb-4 border-t border-slate-100 pt-4">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                      Notas del Técnico
+                    </p>
+                    <p className="text-sm text-slate-700">{detail.notes}</p>
                   </div>
                 )}
 
                 {/* Action Buttons */}
-                <div className="flex gap-2">
-                  {detail.status !== "PENDING" && (
-                    <button
-                      onClick={() => handleOpenModal(detail)}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
-                    >
-                      <PencilIcon className="w-5 h-5" />
-                      Editar Detalle
-                    </button>
-                  )}
+                <div className="flex gap-2 pt-2">
                   {detail.status === "PENDING" && (
                     <button
-                      onClick={() => handleUpdateStatus(detail.id, "IN_PROGRESS")}
-                      className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                      onClick={() => handleUpdateStatus(detail.id, TicketServiceStatus.IN_PROGRESS)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm"
                     >
+                      <PlayIcon className="w-4 h-4" />
                       Iniciar Trabajo
                     </button>
                   )}
                   {detail.status === "IN_PROGRESS" && (
-                    <button
-                      onClick={() => handleUpdateStatus(detail.id, "COMPLETED")}
-                      className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-medium"
-                    >
-                      Marcar como Completado
-                    </button>
+                    <>
+                      <button
+                        onClick={() => handleOpenModal(detail)}
+                        className="flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium text-sm"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleUpdateStatus(detail.id, TicketServiceStatus.COMPLETED)}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm"
+                      >
+                        <CheckCircleIcon className="w-4 h-4" />
+                        Completar
+                      </button>
+                    </>
                   )}
                   {detail.status === "COMPLETED" && (
-                    <div className="flex-1 text-center py-2 text-green-600 font-medium">
-                      ✓ Trabajo Completado
+                    <div className="flex-1 flex items-center justify-center gap-2 py-2.5 text-slate-500 text-sm">
+                      <CheckCircleIcon className="w-4 h-4" />
+                      <span className="font-medium">Trabajo Completado</span>
                     </div>
                   )}
                 </div>
@@ -372,101 +343,87 @@ export default function MyAssignedDetails() {
 
       {/* Modal de Edición */}
       {showModal && selectedDetail && (
-        <div className="fixed inset-0 bg-gray-900/20 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full">
             {/* Header */}
-            <div className="bg-gray-800 text-white px-6 py-4 flex items-center justify-between rounded-t-xl">
-              <div className="flex items-center gap-3">
-                <WrenchScrewdriverIcon className="w-6 h-6" />
-                <div>
-                  <h2 className="text-lg font-bold">Editar Detalle</h2>
-                  <p className="text-sm text-gray-300">{selectedDetail.service.serviceName}</p>
+            <div className="px-6 py-5 border-b border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-900 rounded-lg">
+                    <WrenchScrewdriverIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-900">Actualizar Tarea</h2>
+                    <p className="text-sm text-slate-500">{selectedDetail.service.serviceName}</p>
+                  </div>
                 </div>
+                <button
+                  onClick={handleCloseModal}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <XMarkIcon className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-300 hover:text-white transition-colors"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
             </div>
 
             {/* Body */}
             <form onSubmit={handleSubmit} className="p-6">
-              {/* Form Fields - 3 columns for compact view */}
-              <div className="grid grid-cols-3 gap-4 mb-4">
-                {/* Unit Price */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                    <CurrencyDollarIcon className="w-4 h-4 text-gray-500" />
-                    Precio *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.unitPrice}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        unitPrice: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  />
-                </div>
-
-                {/* Discount */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                    <TagIcon className="w-4 h-4 text-gray-500" />
-                    Descuento
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.discount}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        discount: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                {/* Subtotal (calculated) */}
-                <div>
-                  <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                    <CalculatorIcon className="w-4 h-4 text-gray-500" />
-                    Subtotal
-                  </label>
-                  <input
-                    type="text"
-                    value={`$${(formData.unitPrice - formData.discount).toFixed(2)}`}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-green-50 font-bold text-green-700"
-                    disabled
-                  />
+              {/* Status Selector */}
+              <div className="mb-6">
+                <label className="text-sm font-medium text-slate-700 mb-3 block">
+                  Estado del Trabajo
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: TicketServiceStatus.PENDING })}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+                      formData.status === TicketServiceStatus.PENDING
+                        ? "bg-slate-100 text-slate-900 border-slate-300"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    Pendiente
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: TicketServiceStatus.IN_PROGRESS })}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+                      formData.status === TicketServiceStatus.IN_PROGRESS
+                        ? "bg-slate-900 text-white border-slate-900"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    En Progreso
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, status: TicketServiceStatus.COMPLETED })}
+                    className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all border ${
+                      formData.status === TicketServiceStatus.COMPLETED
+                        ? "bg-white text-slate-900 border-slate-300"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    Completado
+                  </button>
                 </div>
               </div>
 
               {/* Notes */}
-              <div className="mb-4">
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                  <DocumentTextIcon className="w-4 h-4 text-gray-500" />
-                  Notas
+              <div className="mb-6">
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 mb-2">
+                  <DocumentTextIcon className="w-4 h-4 text-slate-500" />
+                  Notas y Observaciones
                 </label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) =>
                     setFormData({ ...formData, notes: e.target.value })
                   }
-                  rows={3}
-                  placeholder="Observaciones del trabajo realizado..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  rows={4}
+                  placeholder="Describe el trabajo realizado, piezas reemplazadas, observaciones..."
+                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-transparent resize-none text-sm"
                 />
               </div>
 
@@ -475,15 +432,15 @@ export default function MyAssignedDetails() {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium text-sm"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  className="flex-1 px-4 py-2.5 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium text-sm"
                 >
-                  Guardar
+                  Guardar Cambios
                 </button>
               </div>
             </form>

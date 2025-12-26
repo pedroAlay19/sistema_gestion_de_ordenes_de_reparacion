@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
 import { WrenchScrewdriverIcon, CubeIcon } from "@heroicons/react/24/outline";
-import { services, technicians, spareParts, auth } from "../../../api";
-import { uploadImage } from "../../../api/supabase";
-import type { MaintenanceService } from "../../../types";
-import type { CreateRepairOrderDetailDto, CreateRepairOrderPartDto, Technician, SparePart } from "../../../api";
+import { services, spareParts, auth, users, repairOrders } from "../../../api";
+import type { Service } from "../../../types/service.types";
+import type { RepairOrder } from "../../../types/repair-order.types";
+import type { CreateRepairOrderDetailDto } from "../../../types/repair-order-detail.types";
+import type { CreateRepairOrderPartDto } from "../../../types/repair-order-part.types";
+import type { Technician } from "../../../types/technician.types";
+import type { SparePart } from "../../../types/spare-part.types";
 import {
   AvailableServicesList,
   AvailablePartsList,
@@ -11,12 +14,9 @@ import {
   SelectedPartsList,
 } from "../assignDetails";
 
-interface AssignDetailsFormProps {
-  onSave: (details: CreateRepairOrderDetailDto[], parts: CreateRepairOrderPartDto[]) => Promise<void>;
-}
-
+// Tipos locales para el formulario (incluyen estado UI)
 interface ServiceSelection {
-  service: MaintenanceService;
+  service: Service;
   technicianId: string;
   unitPrice: number;
   discount: number;
@@ -26,13 +26,14 @@ interface ServiceSelection {
 interface PartSelection {
   part: SparePart;
   quantity: number;
-  imageFile: File | null;
-  imagePreview: string | null;
-  imgUrl: string;
 }
 
-export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
-  const [availableServices, setAvailableServices] = useState<MaintenanceService[]>([]);
+interface AssignDetailsFormProps {
+  order: RepairOrder
+  onSave: (details: CreateRepairOrderDetailDto[], parts: CreateRepairOrderPartDto[]) => Promise<void>;  onCostCalculated?: (cost: number) => void;}
+
+export function AssignDetailsForm({ order, onSave, onCostCalculated }: AssignDetailsFormProps) {
+  const [availableServices, setAvailableServices] = useState<Service[]>([]);
   const [availableTechnicians, setAvailableTechnicians] = useState<Technician[]>([]);
   const [availableParts, setAvailableParts] = useState<SparePart[]>([]);
   const [isEvaluator, setIsEvaluator] = useState(false);
@@ -41,12 +42,19 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
   const [selectedParts, setSelectedParts] = useState<PartSelection[]>([]);
   
   const [loading, setLoading] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [finalCost, setFinalCost] = useState<number | null>(null);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    // Calcular costo final automáticamente cuando cambie la orden
+    if (order?.id) {
+      calculateFinalCost();
+    }
+  }, [order.id, order.repairOrderDetails?.length, order.repairOrderParts?.length]);
 
   const loadData = async () => {
     try {
@@ -56,18 +64,24 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
         return;
       }
 
+      // Validar que order.equipment existe
+      if (!order?.equipment?.id) {
+        setError("Error: No se pudo cargar la información del equipo");
+        return;
+      }
+
       const [servicesData, techniciansData, partsData, profile] = await Promise.all([
-        services.getAll(),
-        technicians.getAll(),
+        services.getApplicableServices(order.equipment.id),
+        users.findTechnicians(),
         spareParts.getAll(),
         auth.getProfile(token),
       ]);
       setAvailableServices(servicesData);
       // Filtrar solo técnicos activos y NO evaluadores
-      setAvailableTechnicians(techniciansData.filter(t => t.active && !t.isEvaluator));
+      setAvailableTechnicians(techniciansData.filter((t: Technician) => t.active && !t.isEvaluator));
       setAvailableParts(partsData);
       // Verificar si el usuario actual es evaluador
-      const userTechnician = techniciansData.find(t => t.id === profile.id);
+      const userTechnician = techniciansData.find((t: Technician) => t.id === profile.id);
       setIsEvaluator(userTechnician?.isEvaluator || false);
     } catch (err) {
       console.error("Error cargando datos:", err);
@@ -76,7 +90,7 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
   };
 
   // Servicios
-  const addService = (service: MaintenanceService) => {
+  const addService = (service: Service) => {
     if (selectedServices.find(s => s.service.id === service.id)) return;
     setSelectedServices([
       ...selectedServices,
@@ -110,9 +124,6 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
       {
         part,
         quantity: 1,
-        imageFile: null,
-        imagePreview: null,
-        imgUrl: "",
       },
     ]);
   };
@@ -133,43 +144,18 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
     );
   };
 
-  const handleImageSelect = (partId: string, file: File | null) => {
-    if (!file) {
-      setSelectedParts(
-        selectedParts.map(p =>
-          p.part.id === partId
-            ? { ...p, imageFile: null, imagePreview: null }
-            : p
-        )
-      );
-      return;
+  const calculateFinalCost = async () => {
+    if (!order?.id) return;
+    
+    try {
+      const cost = await repairOrders.getByFinalCost(order.id);
+      setFinalCost(cost);
+      if (onCostCalculated) {
+        onCostCalculated(cost);
+      }
+    } catch (err) {
+      console.error("Error calculando costo final:", err);
     }
-
-    // Validar tipo
-    const validTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!validTypes.includes(file.type)) {
-      setError("Solo se permiten imágenes JPG, PNG o WEBP");
-      return;
-    }
-
-    // Validar tamaño (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError("La imagen no puede superar los 5MB");
-      return;
-    }
-
-    // Preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedParts(
-        selectedParts.map(p =>
-          p.part.id === partId
-            ? { ...p, imageFile: file, imagePreview: reader.result as string }
-            : p
-        )
-      );
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -191,30 +177,15 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
     setLoading(true);
 
     try {
-      // Subir imágenes de piezas
-      const partsWithUrls: PartSelection[] = [];
-      if (selectedParts.length > 0) {
-        setUploadingImages(true);
-        for (const sel of selectedParts) {
-          let imgUrl = "";
-          if (sel.imageFile) {
-            imgUrl = await uploadImage(sel.imageFile, "repair-parts");
-          }
-          partsWithUrls.push({ ...sel, imgUrl });
-        }
-        setUploadingImages(false);
-      }
-
       // Preparar DTOs
       const details: CreateRepairOrderDetailDto[] = selectedServices.map(sel => ({
         serviceId: sel.service.id,
         technicianId: sel.technicianId,
       }));
 
-      const parts: CreateRepairOrderPartDto[] = partsWithUrls.map(sel => ({
+      const parts: CreateRepairOrderPartDto[] = selectedParts.map(sel => ({
         partId: sel.part.id,
         quantity: sel.quantity,
-        imgUrl: sel.imgUrl || undefined,
       }));
 
       await onSave(details, parts);
@@ -228,7 +199,6 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
       throw err;
     } finally {
       setLoading(false);
-      setUploadingImages(false);
     }
   };
 
@@ -282,7 +252,6 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
             selections={selectedParts}
             onRemove={removePart}
             onUpdateQuantity={updateQuantity}
-            onImageSelect={handleImageSelect}
           />
 
           <AvailablePartsList
@@ -294,18 +263,22 @@ export function AssignDetailsForm({ onSave }: AssignDetailsFormProps) {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+      <div className="border-t border-gray-200 px-6 py-4 bg-gray-50 space-y-3">
+        {finalCost !== null && (
+          <div className="bg-linear-to-r from-green-50 to-emerald-50 border-2 border-green-300 rounded-xl p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Costo Final de la Orden:</span>
+              <span className="text-2xl font-bold text-green-700">${finalCost.toFixed(2)}</span>
+            </div>
+          </div>
+        )}
+        
         <button
           onClick={handleSave}
           disabled={loading || !canSave}
           className="w-full bg-linear-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
         >
-          {uploadingImages ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Subiendo imágenes...
-            </>
-          ) : loading ? (
+          {loading ? (
             <>
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
               Guardando...

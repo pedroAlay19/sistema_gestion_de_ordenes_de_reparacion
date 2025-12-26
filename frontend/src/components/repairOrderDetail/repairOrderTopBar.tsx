@@ -1,5 +1,5 @@
 import ArrowLeftIcon from "@heroicons/react/24/outline/ArrowLeftIcon";
-import type { OrderRepairStatus } from "../../types";
+import type { OrderRepairStatus } from "../../types/repair-order.types";
 import { getOrderStatusText } from "../../utils";
 import { getBadgeClasses } from "../ui";
 import { useNavigate } from "react-router-dom";
@@ -29,8 +29,8 @@ export const RepairOrderTopBar: React.FC<RepairOrderTopBarProps> = ({
         </button>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-500 mb-1">
-              Orden {orderId.toString().padStart(5, "0")}
+            <h1 className="text-3xl text-gray-500 mb-1">
+              Orden {orderId ? orderId.toString().padStart(5, "0") : "---"}
             </h1>
           </div>
           <span

@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { getEquipment, updateEquipment } from "../../api/api";
+import { equipments } from "../../api";
 import { equipmentTypes } from "../../data/equipmentTypes";
+import { EquipmentType } from "../../types/equipment.types";
 
 export default function EditEquipment() {
   const { id } = useParams<{ id: string }>();
@@ -20,7 +21,7 @@ export default function EditEquipment() {
     if (!id) return;
     
     try {
-      const equipment = await getEquipment(id);
+      const equipment = await equipments.getById(id);
       setFormData({
         name: equipment.name,
         type: equipment.type,
@@ -44,8 +45,8 @@ export default function EditEquipment() {
     if (!id) return;
     
     try {
-      await updateEquipment(id, {
-        type: formData.type,
+      await equipments.update(id, {
+        type: formData.type as EquipmentType,
         brand: formData.brand,
         model: formData.model,
         serialNumber: formData.serialNumber || undefined,
@@ -74,7 +75,7 @@ export default function EditEquipment() {
       <div className="bg-slate-800 px-8 py-6">
         <div className="max-w-3xl mx-auto">
           <Link
-            to={`/user/equipments/${id}`}
+            to={`/user/equipments`}
             className="inline-flex items-center gap-2 text-slate-300 hover:text-white mb-4 transition-colors"
           >
             <ArrowLeftIcon className="w-5 h-5" />

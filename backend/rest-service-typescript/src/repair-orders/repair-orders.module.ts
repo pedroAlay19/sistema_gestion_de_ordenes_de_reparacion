@@ -10,18 +10,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RepairOrderDetail } from './entities/repair-order-detail.entity';
 import { RepairOrderPart } from './entities/repair-order-part.entity';
 import { RepairOrder } from './entities/repair-order.entity';
-import { NotificationService } from './services/notification.service';
 import { SparePartsModule } from 'src/spare-parts/spare-parts.module';
 import { RepairOrderNotification } from './entities/repair-order-notification.entity';
 import { HttpModule } from '@nestjs/axios';
-import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 
 @Module({
   imports:[
     TypeOrmModule.forFeature([RepairOrderDetail, RepairOrderPart, RepairOrder, RepairOrderNotification]),
     EquipmentsModule, MaintenanceServicesModule, UsersModule, SparePartsModule, HttpModule],
   controllers: [RepairOrdersController],
-  providers: [RepairOrdersService, RepairOrderDetailsService, RepairOrderPartsService, NotificationService, WebSocketNotificationService],
+  providers: [RepairOrdersService, RepairOrderDetailsService, RepairOrderPartsService],
   exports: [RepairOrdersService]
 })
 export class RepairOrdersModule {}

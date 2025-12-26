@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsOptional, IsString, IsUUID, Min } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from "class-validator";
 
 export class CreateRepairOrderDetailDto {
   @IsUUID() 
@@ -8,15 +8,6 @@ export class CreateRepairOrderDetailDto {
   @IsUUID()
   @IsNotEmpty()
   technicianId: string;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  unitPrice?: number;
-
-  @IsOptional()
-  @IsNumber()
-  discount?: number;
 
   @IsOptional()
   @IsString()

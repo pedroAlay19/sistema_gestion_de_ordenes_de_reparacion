@@ -6,18 +6,21 @@ import { RepairOrdersModule } from './repair-orders/repair-orders.module';
 import { EquipmentsModule } from './equipments/equipments.module';
 import { RepairOrderReviewsModule } from './repair-order-reviews/repair-order-reviews.module';
 import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true, // Hace las variables disponibles en toda la app
+    }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'admin',
-      database: 'server_proyect',
+      url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: true,
+      ssl: {
+        rejectUnauthorized: false,
+      },
     }),
     EquipmentsModule,
     MaintenanceServicesModule,
@@ -25,7 +28,8 @@ import { AuthModule } from './auth/auth.module';
     RepairOrdersModule,
     EquipmentsModule,
     RepairOrderReviewsModule,
-    AuthModule],
+    AuthModule,
+  ],
   controllers: [],
   providers: [],
 })

@@ -9,14 +9,11 @@ export class Technician extends User {
   ticketServices?: RepairOrderDetail[];
 
   @Column()
-  specialty!: string;
-
-  @Column({ type: 'int', default: 0})
-  experienceYears!: number;
+  specialty: string;
 
   @Column({ default: false })
   isEvaluator: boolean
 
   @Column({default: true})
-  active!: boolean;
+  active: boolean;
 }

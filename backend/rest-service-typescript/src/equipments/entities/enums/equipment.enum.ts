@@ -1,9 +1,19 @@
 export enum EquipmentType {
   PC = "PC",
   LAPTOP = "LAPTOP",
+  ALL_IN_ONE = "ALL_IN_ONE",
+  SERVER = "SERVER",
   CELLPHONE = "CELLPHONE",
   PRINTER = "PRINTER",
-  TABLET = "TABLET"
+  SMARTWATCH = "SMARTWATCH",
+  TABLET = "TABLET",
+  ROUTER = "ROUTER",
+  SWITCH = "SWITCH",
+  WEBCAM = "WEBCAM",
+  MONITOR = "MONITOR",
+  KEYBOARD = "KEYBOARD",
+  MOUSE = "MOUSE",
+  SCAMNER = "SCANNER"
 }
 
 export enum EquipmentStatus {

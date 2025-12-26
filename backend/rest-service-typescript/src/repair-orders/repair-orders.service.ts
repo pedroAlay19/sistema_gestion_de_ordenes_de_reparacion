@@ -7,18 +7,24 @@ import {
 import { CreateRepairOrderDto } from './dto/create-repair-order.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RepairOrder } from './entities/repair-order.entity';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { EquipmentsService } from '../equipments/equipments.service';
 import { RepairOrderDetailsService } from './services/repair-order-details.service';
 import { RepairOrderPartsService } from './services/repair-order-parts.service';
-import { NotificationService } from './services/notification.service';
-import { OrderRepairStatus, TicketServiceStatus } from './entities/enum/order-repair.enum';
-import { UpdateRepairOrderDto } from './dto/update-repair-order.dto';
+import {
+  OrderRepairStatus,
+  TicketServiceStatus,
+} from './entities/enum/order-repair.enum';
+import {
+  AssignRepairWorkDto,
+  EvaluateRepairOrderDto,
+} from './dto/update-repair-order.dto';
 import type { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { UserRole } from '../users/entities/enums/user-role.enum';
 import { UsersService } from '../users/users.service';
-import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
 import { EquipmentStatus } from '../equipments/entities/enums/equipment.enum';
+import { CreateRepairOrderDetailDto } from './dto/details/create-repair-order-detail.dto';
+import { CreateRepairOrderPartDto } from './dto/parts/create-repair-order-part.dto';
 
 @Injectable()
 export class RepairOrdersService {
@@ -32,85 +38,34 @@ export class RepairOrdersService {
 
     private readonly repairOrderPartsService: RepairOrderPartsService,
 
-    private readonly notificationService: NotificationService,
-
     private readonly usersService: UsersService,
 
-    private readonly wsNotificationService: WebSocketNotificationService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(createRepairOrderDto: CreateRepairOrderDto) {
-    const equipmentFound = await this.equipmentsService.findOneById(
+    const equipment = await this.equipmentsService.findOneAvailable(
       createRepairOrderDto.equipmentId,
     );
 
-    const evaluatorTechnician =
-      await this.usersService.findTechnicianEvaluator();
+    // Asignar el tecnico evaluador por defecto
+    const evaluator = await this.usersService.findTechnicianEvaluator();
 
     // Crear la orden principal
-    const repairOrder = this.repairOrderRepository.create({
-      ...createRepairOrderDto,
-      equipment: equipmentFound,
-      evaluatedBy: evaluatorTechnician,
-      finalCost: 0,
+    const order = this.repairOrderRepository.create({
+      equipment,
+      evaluatedBy: evaluator,
+      problemDescription: createRepairOrderDto.problemDescription,
+      imageUrls: createRepairOrderDto.imageUrls || [],
     });
-    const savedOrderRepair = await this.repairOrderRepository.save(repairOrder);
-    let totalDetails = 0;
-    let totalParts = 0;
-
-    // Crear los detalles asociados
-    if (createRepairOrderDto.details?.length) {
-      const details = await this.repairOrderDetailsService.create(
-        createRepairOrderDto.details,
-        savedOrderRepair,
-      );
-      totalDetails = details.reduce((sum, d) => sum + Number(d.subTotal), 0);
-      savedOrderRepair.repairOrderDetails = details;
-    }
-    // Crear las piezas asociadas
-    if (createRepairOrderDto.parts?.length) {
-      const parts = await this.repairOrderPartsService.create(
-        createRepairOrderDto.parts,
-        savedOrderRepair,
-      );
-      totalParts = parts.reduce((sum, p) => sum + Number(p.subTotal), 0);
-      savedOrderRepair.repairOrderParts = parts;
-    }
-
-    const finalCost = totalDetails + totalParts;
-
-    // Actualizar la orden con el costo final
-    savedOrderRepair.finalCost = finalCost;
-    savedOrderRepair.finalCost = finalCost;
-    const savedOrder = await this.repairOrderRepository.save(savedOrderRepair);
-
-    await this.notificationService.create(
-      savedOrder,
-      OrderRepairStatus.IN_REVIEW,
-    );
-
-    // Notificar creación de orden - Actualiza: overview, by-status, recent, counts
-    await this.wsNotificationService.notifyDashboardUpdate(
-      'REPAIR_ORDER_CREATED',
-      savedOrder.id,
-    );
-
-    return { savedOrder };
+    return await this.repairOrderRepository.save(order);
   }
 
   async findAllByRole(user: JwtPayload) {
     switch (user.role) {
       case UserRole.ADMIN: {
         return await this.repairOrderRepository.find({
-          relations: [
-            'repairOrderDetails',
-            'repairOrderDetails.technician',
-            'repairOrderDetails.service',
-            'repairOrderParts',
-            'repairOrderParts.part',
-            'equipment.user',
-            'evaluatedBy',
-          ],
+          relations: ['repairOrderDetails', 'repairOrderParts', 'equipment.user'],
           order: { createdAt: 'DESC' },
         });
       }
@@ -132,6 +87,332 @@ export class RepairOrdersService {
     }
   }
 
+  async findByEquipment(equipmentId: string) {
+    return await this.repairOrderRepository.find({
+      where: { equipment: { id: equipmentId } },
+      relations: ['repairOrderDetails', 'repairOrderDetails.service', 'repairOrderParts', 'repairOrderParts.part', 'repairOrderDetails.technician'],
+    });;
+  }
+
+  async findOne(id: string, user: JwtPayload) {
+    let order: RepairOrder | null;
+    switch (user.role) {
+      case UserRole.ADMIN:
+        order = await this.repairOrderRepository.findOne({
+          where: { id },
+          relations: ['repairOrderDetails', 'repairOrderParts'],
+        });
+        break;
+
+      case UserRole.TECHNICIAN:
+        order = await this.repairOrderRepository.findOne({
+          where: [
+            { id, repairOrderDetails: { technician: { id: user.sub } } },
+            { id, evaluatedBy: { id: user.sub } },
+          ],
+          relations: ['repairOrderDetails', 'repairOrderParts', 'equipment', 'repairOrderDetails.service', 'repairOrderDetails.technician', 'repairOrderParts.part'],
+        });
+        break;
+
+      case UserRole.USER:
+        order = await this.repairOrderRepository.findOne({
+          where: { id, equipment: { user: { id: user.sub } } },
+          relations: ['equipment', 'repairOrderDetails', 'repairOrderParts', 'repairOrderDetails.service', 'repairOrderParts.part', 'repairOrderDetails.technician'],
+        });
+        break;
+
+      default:
+        throw new ForbiddenException('Invalid user role');
+    }
+    if (!order)
+      throw new NotFoundException(`Repair order with ID ${id} not found.`);
+    return order;
+  }
+
+  async remove(id: string, user: JwtPayload) {
+    if (user.role !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can delete orders');
+    }
+    const order = await this.findOne(id, user);
+    const safeStatesToDelete = [
+      OrderRepairStatus.IN_REVIEW,
+      OrderRepairStatus.WAITING_APPROVAL,
+      OrderRepairStatus.REJECTED,
+    ];
+    if (!safeStatesToDelete.includes(order.status)) {
+      throw new BadRequestException(
+        'Cannot delete orders with assigned work (IN_REPAIR, READY, DELIVERED). ' +
+          'These orders have inventory movements and cannot be deleted.',
+      );
+    }
+    await this.repairOrderRepository.remove(order);
+  }
+
+  // Flujos de estado
+
+  // Paso 1: Tecnico evalua la orden
+  async evaluateRepairOrder(
+    orderId: string,
+    dto: EvaluateRepairOrderDto,
+    technicianId: string,
+  ): Promise<RepairOrder> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId, evaluatedBy: { id: technicianId } },
+      relations: ['equipment', 'evaluatedBy'],
+    });
+
+    if (!order) {
+      throw new NotFoundException(
+        'Order not found or you are not the assigned evaluator',
+      );
+    }
+
+    if (order.status !== OrderRepairStatus.IN_REVIEW) {
+      throw new BadRequestException(
+        'Order must be in IN_REVIEW status to evaluate',
+      );
+    }
+
+    order.diagnosis = dto.diagnosis;
+    order.estimatedCost = dto.estimatedCost;
+    order.status = OrderRepairStatus.WAITING_APPROVAL;
+
+    return await this.repairOrderRepository.save(order);
+  }
+
+  // Paso 2: Cliente aprueba la orden
+  async approveRepairOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<RepairOrder> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId, equipment: { user: { id: userId } } },
+      relations: ['equipment', 'equipment.user'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found or not yours');
+    }
+
+    if (order.status !== OrderRepairStatus.WAITING_APPROVAL) {
+      throw new BadRequestException(
+        'Order must be in WAITING_APPROVAL status to approve',
+      );
+    }
+
+    order.status = OrderRepairStatus.IN_REPAIR;
+    order.equipment.currentStatus = EquipmentStatus.IN_REPAIR;
+    await this.equipmentsService.updateStatus(order.equipment.id, EquipmentStatus.IN_REPAIR);
+    return await this.repairOrderRepository.save(order);
+  }
+
+  // Paso 2: Cliente rechaza la orden
+  async rejectRepairOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<RepairOrder> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId, equipment: { user: { id: userId } } },
+      relations: ['equipment', 'equipment.user'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found or not yours');
+    }
+
+    if (order.status !== OrderRepairStatus.WAITING_APPROVAL) {
+      throw new BadRequestException(
+        'Order must be in WAITING_APPROVAL status to reject',
+      );
+    }
+
+    order.status = OrderRepairStatus.REJECTED;
+
+    // Liberar el equipo
+    await this.equipmentsService.updateStatus(
+      order.equipment.id,
+      EquipmentStatus.AVAILABLE,
+    );
+
+    return await this.repairOrderRepository.save(order);
+  }
+
+  // Paso 3: Asignar trabajo (tecnicos y piezas)
+  async assignWork(
+    orderId: string,
+    dto: AssignRepairWorkDto,
+  ): Promise<RepairOrder> {
+    return await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(RepairOrder, {
+        where: { id: orderId },
+        relations: ['equipment'],
+      });
+
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      if (order.status !== OrderRepairStatus.IN_REPAIR) {
+        throw new BadRequestException(
+          'Order must be in IN_REPAIR status to assign work',
+        );
+      }
+
+      // Crear detalles (servicios)
+      await this.repairOrderDetailsService.createMany(dto.details, order);
+
+      // Crear partes (si existen)
+      if (dto.parts?.length) {
+        await this.repairOrderPartsService.createMany(dto.parts, order);
+      }
+      return order;
+    });
+  }
+
+  // Paso 4: Reasignar trabajo (eliminar y recrear)
+  async reassignWork(
+    orderId: string,
+    dto: AssignRepairWorkDto,
+  ): Promise<RepairOrder> {
+    return await this.dataSource.transaction(async (manager) => {
+      const order = await manager.findOne(RepairOrder, {
+        where: { id: orderId },
+        relations: ['repairOrderDetails', 'repairOrderParts'],
+      });
+
+      if (!order) {
+        throw new NotFoundException('Order not found');
+      }
+
+      if (order.status !== OrderRepairStatus.IN_REPAIR) {
+        throw new BadRequestException(
+          'Can only reassign work for orders in IN_REPAIR status',
+        );
+      }
+      // Eliminar detalles existentes (solo PENDING)
+      for (const detail of order.repairOrderDetails || []) {
+        if (detail.status !== TicketServiceStatus.PENDING) {
+          throw new BadRequestException(
+            'Cannot reassign work with tasks already in progress',
+          );
+        }
+        await manager.remove(detail);
+      }
+
+      // Eliminar partes existentes (devuelve stock automáticamente)
+      for (const part of order.repairOrderParts || []) {
+        await this.repairOrderPartsService.remove(part.id);
+      }
+
+      // Crear nuevos detalles
+      await this.repairOrderDetailsService.createMany(dto.details, order);
+      // Crear nuevas partes
+      if (dto.parts?.length) {
+        await this.repairOrderPartsService.createMany(dto.parts, order);
+      }
+
+      return order;
+    });
+  }
+
+  // Agregar un detalle individual
+  async addDetail(
+    orderId: string,
+    dto: CreateRepairOrderDetailDto,
+  ): Promise<void> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderRepairStatus.IN_REPAIR) {
+      throw new BadRequestException('Order must be in IN_REPAIR status');
+    }
+
+    await this.repairOrderDetailsService.createMany([dto], order);
+  }
+
+  // Eliminar un detalle individual
+  async removeDetail(orderId: string, detailId: string): Promise<void> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderRepairStatus.IN_REPAIR) {
+      throw new BadRequestException('Order must be in IN_REPAIR status');
+    }
+
+    await this.repairOrderDetailsService.remove(detailId);
+  }
+
+  // Agregar una pieza individual
+  async addPart(orderId: string, dto: CreateRepairOrderPartDto): Promise<void> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderRepairStatus.IN_REPAIR) {
+      throw new BadRequestException('Order must be in IN_REPAIR status');
+    }
+
+    await this.repairOrderPartsService.createMany([dto], order);
+  }
+
+  // Eliminar una pieza individual
+  async removePart(orderId: string, partId: string): Promise<void> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderRepairStatus.IN_REPAIR) {
+      throw new BadRequestException('Order must be in IN_REPAIR status');
+    }
+
+    await this.repairOrderPartsService.remove(partId);
+  }
+
+  // Paso 5: Entregar equipo al cliente READY -> DELIVERED
+  async deliver(orderId: string): Promise<RepairOrder> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId },
+      relations: ['equipment'],
+    });
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    if (order.status !== OrderRepairStatus.READY) {
+      throw new BadRequestException('Order must be in READY status to deliver');
+    }
+
+    order.status = OrderRepairStatus.DELIVERED;
+
+    // Actualizar estado del equipo a AVAILABLE
+    await this.equipmentsService.updateStatus(
+      order.equipment.id,
+      EquipmentStatus.AVAILABLE,
+    );
+
+    return await this.repairOrderRepository.save(order);
+  }
+
+  // Ordenes asignadas a evaluador
   async findByEvaluator(technicianId: string) {
     return await this.repairOrderRepository.find({
       where: { evaluatedBy: { id: technicianId } },
@@ -139,269 +420,50 @@ export class RepairOrdersService {
     });
   }
 
+  // Detalles de trabajo asignados al tecnico
   async findDetailsByTechnician(technicianId: string) {
-    const details = await this.repairOrderDetailsService.findByTechnician(technicianId);
-    return details;
+    return await this.repairOrderDetailsService.findByTechnician(technicianId);
   }
 
-  async updateDetailStatus(detailId: string, technicianId: string, status: TicketServiceStatus, notes?: string) {
-    return await this.repairOrderDetailsService.updateStatus(detailId, technicianId, status, notes);
-  }
-
-  async updateDetailByTechnician(
+  // Tecnico actualiza el estado de su tarea
+  async updateDetailStatus(
     detailId: string,
     technicianId: string,
-    updateData: {
-      status: TicketServiceStatus;
-      unitPrice: number;
-      discount?: number;
-      imageUrl?: string;
-      notes?: string;
-    },
+    status: TicketServiceStatus,
+    notes?: string,
   ) {
-    const result = await this.repairOrderDetailsService.updateByTechnician(detailId, technicianId, updateData);
-    
-    // Recalcular el finalCost de la orden
-    const repairOrder = await this.repairOrderRepository.findOne({
-      where: { id: result.repairOrderId },
+    return await this.repairOrderDetailsService.updateStatus(
+      detailId,
+      technicianId,
+      status,
+      notes,
+    );
+  }
+
+  async calculateFinalCost(orderId: string): Promise<number> {
+    const order = await this.repairOrderRepository.findOne({
+      where: { id: orderId },
       relations: ['repairOrderDetails', 'repairOrderParts'],
     });
 
-    if (repairOrder) {
-      const totalDetails = repairOrder.repairOrderDetails?.reduce(
-        (sum, d) => sum + Number(d.subTotal),
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const detailsCost =
+      order.repairOrderDetails?.reduce(
+        (sum, d) => sum + Number(d.repairPrice),
         0,
-      ) ?? 0;
+      ) || 0;
 
-      const totalParts = repairOrder.repairOrderParts?.reduce(
-        (sum, p) => sum + Number(p.subTotal),
-        0,
-      ) ?? 0;
+    const partsCost =
+      order.repairOrderParts?.reduce((sum, p) => sum + Number(p.subTotal), 0) ||
+      0;
 
-      repairOrder.finalCost = totalDetails + totalParts;
-      await this.repairOrderRepository.save(repairOrder);
-    }
-    
-    return result.detail;
+    return Number((detailsCost + partsCost).toFixed(2));
   }
 
-  async findOne(id: string, user: JwtPayload) {
-    switch (user.role) {
-      case UserRole.ADMIN: {
-        return await this.repairOrderRepository.findOne({
-          where: { id },
-          relations: [
-            'equipment',
-            'equipment.user',
-            'repairOrderDetails',
-            'repairOrderDetails.technician',
-            'repairOrderDetails.service',
-            'repairOrderParts',
-            'repairOrderParts.part',
-            'evaluatedBy',
-          ],
-        });
-      }
-      case UserRole.TECHNICIAN: {
-        const order = await this.repairOrderRepository.findOne({
-          where: [
-            { id, repairOrderDetails: { technician: { id: user.sub } } },
-            { id, evaluatedBy: { id: user.sub } },
-          ],
-          relations: [
-            'repairOrderDetails',
-            'repairOrderDetails.service',
-            'repairOrderDetails.technician',
-            'repairOrderParts',
-            'repairOrderParts.part',
-            'equipment',
-          ],
-        });
-        return order;
-      }
-      case UserRole.USER: {
-        const order = await this.repairOrderRepository.findOne({
-          where: { id, equipment: { user: { id: user.sub } } },
-          relations: ['equipment', 'repairOrderDetails', 'repairOrderParts'],
-        });
-        if (!order) {
-          throw new ForbiddenException(
-            `You do not have access to this repair order.`,
-          );
-        }
-        return order;
-      }
-      default:
-        throw new ForbiddenException('Invalid user role');
-    }
-  }
-
-  async update(
-    id: string,
-    updateRepairOrderDto: UpdateRepairOrderDto,
-    user: JwtPayload,
-  ) {
-    const repairOrder = await this.findOne(id, user);
-    if (!repairOrder)
-      throw new NotFoundException(`Repair order with ID ${id} not found.`);
-    const previousStatus = repairOrder.status;
-
-    this.updateBasicInfo(repairOrder, updateRepairOrderDto);
-    await this.handleStatusChange(
-      repairOrder,
-      updateRepairOrderDto.status,
-      previousStatus,
-    );
-    this.updateWarrantyDates(repairOrder, updateRepairOrderDto);
-
-    // Actualizar detalles (servicios de mantenimiento)
-    if (updateRepairOrderDto.details?.length) {
-      repairOrder.repairOrderDetails =
-        await this.repairOrderDetailsService.updateMany(
-          updateRepairOrderDto.details,
-          repairOrder,
-        );
-    }
-
-    // Actualizar las piezas del mantenimiento
-    if (updateRepairOrderDto.parts?.length) {
-      repairOrder.repairOrderParts =
-        await this.repairOrderPartsService.updateMany(
-          updateRepairOrderDto.parts,
-          repairOrder,
-        );
-    }
-
-    repairOrder.finalCost = await this.recalculateFinalCost(
-      repairOrder.id,
-      user,
-    );
-    return await this.repairOrderRepository.save(repairOrder);
-  }
-
-  async remove(id: string, user: JwtPayload) {
-    const repairOrder = await this.findOne(id, user);
-    if (!repairOrder)
-      throw new NotFoundException(`Repair order with ID ${id} not found.`);
-    await this.repairOrderRepository.remove(repairOrder);
-  }
-
-  // Funciones privadas auxiliares
-
-  private updateBasicInfo(repairOrder: RepairOrder, dto: UpdateRepairOrderDto) {
-    if (dto.problemDescription)
-      repairOrder.problemDescription = dto.problemDescription;
-
-    if (dto.diagnosis) repairOrder.diagnosis = dto.diagnosis;
-
-    if (dto.estimatedCost) repairOrder.estimatedCost = dto.estimatedCost;
-  }
-
-  private async handleStatusChange(
-    repairOrder: RepairOrder,
-    newStatus?: OrderRepairStatus,
-    previousStatus?: OrderRepairStatus,
-  ) {
-    if (!newStatus || newStatus === previousStatus) return;
-    repairOrder.status = newStatus;
-    
-    // Actualizar estado del equipo según el estado de la orden
-    await this.updateEquipmentStatus(repairOrder, newStatus);
-    
-    // Generar fechas de garantía cuando se entrega
-    if (newStatus === OrderRepairStatus.DELIVERED) {
-      this.generateWarrantyDates(repairOrder);
-    }
-    
-    await this.notificationService.create(repairOrder, newStatus);
-  }
-
-  private async updateEquipmentStatus(
-    repairOrder: RepairOrder,
-    newStatus: OrderRepairStatus,
-  ) {
-    const equipment = await this.equipmentsService.findOneById(
-      repairOrder.equipment.id,
-    );
-
-    if (!equipment) return;
-
-    // Cuando la orden pasa a IN_REPAIR, el equipo debe estar en IN_REPAIR
-    if (newStatus === OrderRepairStatus.IN_REPAIR) {
-      await this.equipmentsService.updateStatus(
-        equipment.id,
-        EquipmentStatus.IN_REPAIR,
-      );
-    }
-    
-    // Cuando la orden se entrega, el equipo vuelve a estar AVAILABLE
-    if (newStatus === OrderRepairStatus.DELIVERED) {
-      await this.equipmentsService.updateStatus(
-        equipment.id,
-        EquipmentStatus.AVAILABLE,
-      );
-    }
-  }
-
-  private generateWarrantyDates(repairOrder: RepairOrder) {
-    // Si ya tiene fechas de garantía, no las sobrescribimos
-    if (repairOrder.warrantyStartDate && repairOrder.warrantyEndDate) return;
-
-    const today = new Date();
-    const warrantyEnd = new Date();
-    
-    // Garantía de 3 meses desde hoy
-    warrantyEnd.setMonth(warrantyEnd.getMonth() + 3);
-
-    repairOrder.warrantyStartDate = today;
-    repairOrder.warrantyEndDate = warrantyEnd;
-  }
-
-  private updateWarrantyDates(
-    repairOrder: RepairOrder,
-    dto: UpdateRepairOrderDto,
-  ) {
-    const { warrantyStartDate, warrantyEndDate } = dto;
-
-    if (!warrantyStartDate || !warrantyEndDate) return;
-
-    const start = new Date(warrantyStartDate);
-    const end = new Date(warrantyEndDate);
-
-    if (start >= end) {
-      throw new BadRequestException(
-        'Warranty start date must be earlier than the end date.',
-      );
-    }
-    repairOrder.warrantyStartDate = start;
-    repairOrder.warrantyEndDate = end;
-  }
-
-  // Funcion para recalcular el costo final de un RepairOrder
-  private async recalculateFinalCost(
-    orderId: string,
-    user: JwtPayload,
-  ): Promise<number> {
-    const orderRepair = await this.findOne(orderId, user);
-    if (!orderRepair)
-      throw new NotFoundException(`Repair order with ID ${orderId} not found.`);
-    const totalDetails =
-      orderRepair.repairOrderDetails?.reduce(
-        (sum, d) => sum + Number(d.subTotal),
-        0,
-      ) ?? 0;
-
-    const totalParts =
-      orderRepair.repairOrderParts?.reduce(
-        (sum, p) => sum + Number(p.subTotal),
-        0,
-      ) ?? 0;
-
-    const finalCost = totalDetails + totalParts;
-    return finalCost;
-  }
-
-
+  // Dashboards y reportes
   async getOrdersOverview() {
     const [totalOrders, activeOrders, rejectedOrders, completedOrders] =
       await Promise.all([
@@ -411,7 +473,6 @@ export class RepairOrdersService {
             { status: OrderRepairStatus.IN_REVIEW },
             { status: OrderRepairStatus.WAITING_APPROVAL },
             { status: OrderRepairStatus.IN_REPAIR },
-            { status: OrderRepairStatus.WAITING_PARTS },
             { status: OrderRepairStatus.READY },
           ],
         }),
@@ -434,13 +495,13 @@ export class RepairOrdersService {
   async getRevenueStats() {
     const completedOrders = await this.repairOrderRepository.find({
       where: { status: OrderRepairStatus.DELIVERED },
-      select: ['finalCost'],
+      relations: ['repairOrderDetails', 'repairOrderParts'],
     });
 
-    const totalRevenue = completedOrders.reduce(
-      (sum, o) => sum + Number(o.finalCost || 0),
-      0,
-    );
+    let totalRevenue = 0;
+    for (const order of completedOrders) {
+      totalRevenue += await this.calculateFinalCost(order.id);
+    }
 
     const avgCost =
       completedOrders.length > 0 ? totalRevenue / completedOrders.length : 0;
@@ -463,55 +524,13 @@ export class RepairOrdersService {
     return { ordersByStatus: statusCounts };
   }
 
-  async getRecentOrders(limit: number = 10) {
-    const orders = await this.repairOrderRepository.find({
-      relations: ['equipment', 'equipment.user'],
-      order: { createdAt: 'DESC' },
-      take: limit,
-      select: {
-        id: true,
-        problemDescription: true,
-        status: true,
-        createdAt: true,
-        finalCost: true,
-        equipment: {
-          name: true,
-          user: {
-            name: true,
-          },
-        },
-      },
-    });
-
-    const recentOrders = orders.map((o) => ({
-      id: o.id,
-      problemDescription: o.problemDescription,
-      status: o.status,
-      clientName: o.equipment?.user?.name,
-      equipmentName: o.equipment?.name,
-      createdAt: o.createdAt,
-      finalCost: o.finalCost,
-    }));
-
-    return { recentOrders };
-  }
-
-
   async getTopServices(limit: number = 5) {
     const orders = await this.repairOrderRepository.find({
       relations: ['repairOrderDetails', 'repairOrderDetails.service'],
-      select: {
-        id: true,
-        repairOrderDetails: {
-          subTotal: true,
-          service: {
-            serviceName: true,
-          },
-        },
-      },
     });
 
     const serviceStats: Record<string, { count: number; revenue: number }> = {};
+
     orders.forEach((o) => {
       o.repairOrderDetails?.forEach((detail) => {
         const serviceName = detail.service?.serviceName || 'Unknown';
@@ -519,7 +538,7 @@ export class RepairOrdersService {
           serviceStats[serviceName] = { count: 0, revenue: 0 };
         }
         serviceStats[serviceName].count++;
-        serviceStats[serviceName].revenue += Number(detail.subTotal || 0);
+        serviceStats[serviceName].revenue += Number(detail.repairPrice || 0);
       });
     });
 
@@ -533,37 +552,5 @@ export class RepairOrdersService {
       .slice(0, limit);
 
     return { topServices };
-  }
-
-  async getTotalOrdersCount() {
-    const count = await this.repairOrderRepository.count();
-    return { count };
-  }
-
-  async getActiveOrdersCount() {
-    const count = await this.repairOrderRepository.count({
-      where: [
-        { status: OrderRepairStatus.IN_REVIEW },
-        { status: OrderRepairStatus.WAITING_APPROVAL },
-        { status: OrderRepairStatus.IN_REPAIR },
-        { status: OrderRepairStatus.WAITING_PARTS },
-        { status: OrderRepairStatus.READY },
-      ],
-    });
-    return { count };
-  }
-
-  async getTotalRevenue() {
-    const completedOrders = await this.repairOrderRepository.find({
-      where: { status: OrderRepairStatus.DELIVERED },
-      select: ['finalCost'],
-    });
-
-    const total = completedOrders.reduce(
-      (sum, o) => sum + Number(o.finalCost || 0),
-      0,
-    );
-
-    return { revenue: Math.round(total * 100) / 100 };
   }
 }

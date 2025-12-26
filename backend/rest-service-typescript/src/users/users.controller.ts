@@ -45,36 +45,6 @@ export class UsersController {
     return this.usersService.findTechnicians();
   }
 
-  @Get('stats/overview')
-  getUsersOverview() {
-    return this.usersService.getUsersOverview();
-  }
-
-  @Get('stats/top-clients')
-  getTopClients() {
-    return this.usersService.getTopClients(5);
-  }
-
-  @Get('stats/top-technicians')
-  getTopTechnicians() {
-    return this.usersService.getTopTechnicians(5);
-  }
-
-  @Get('stats/count/clients')
-  getTotalClientsCount() {
-    return this.usersService.getTotalClientsCount();
-  }
-
-  @Get('stats/count/technicians')
-  getTotalTechniciansCount() {
-    return this.usersService.getTotalTechniciansCount();
-  }
-
-  @Get('stats/count/active-technicians')
-  getActiveTechniciansCount() {
-    return this.usersService.getActiveTechniciansCount();
-  }
-
   @Get(':id')
   @Auth(UserRole.ADMIN)
   findOne(@Param('id') id: string) {
@@ -119,5 +89,11 @@ export class UsersController {
   @Auth(UserRole.ADMIN)
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Get('stats/overview')
+  @Auth(UserRole.ADMIN)
+  usersOverview() {
+    return this.usersService.usersOverview();
   }
 }

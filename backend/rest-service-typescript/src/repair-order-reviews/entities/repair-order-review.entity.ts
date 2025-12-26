@@ -8,26 +8,26 @@ import {
 } from 'typeorm';
 import { RepairOrder } from '../../repair-orders/entities/repair-order.entity';
 
-@Entity('repair_order_review')
+@Entity('repair_order_comments')
 export class RepairOrderReview {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @ManyToOne(() => RepairOrder, (rp) => rp.reviews, { onDelete: 'CASCADE' })
-  repairOrder!: RepairOrder;
+  repairOrder: RepairOrder;
 
   @Column({ type: 'smallint' })
-  rating!: number; // 1–5
+  rating: number; // 1–5
 
   @Column({ type: 'text' })
-  comment!: string;
+  comment: string;
 
   @Column({ type: 'boolean', default: true })
-  visible!: boolean;
+  visible: boolean;
 
   @CreateDateColumn()
-  createdAt!: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
-  updatedAt!: Date;
+  updatedAt: Date;
 }

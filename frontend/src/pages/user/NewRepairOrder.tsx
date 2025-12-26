@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { getEquipments, createRepairOrder } from "../../api/api";
+import { equipments as equipmentsApi, repairOrders } from "../../api";
 import type { Equipment } from "../../types/equipment.types";
 import { uploadImage } from "../../api/supabase";
 
@@ -19,7 +19,7 @@ export default function NewRepairOrder() {
   useEffect(() => {
     const loadEquipments = async () => {
       try {
-        const data = await getEquipments();
+        const data = await equipmentsApi.getAll();
         setEquipments(data);
         
         // Si viene un equipmentId desde el state (desde MyEquipments)
@@ -55,7 +55,7 @@ export default function NewRepairOrder() {
       }
 
       // Create repair order with uploaded image URLs
-      await createRepairOrder({
+      await repairOrders.create({
         equipmentId: selectedEquipmentId,
         problemDescription: problemDescription.trim(),
         imageUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,

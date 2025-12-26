@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getReviewsByRole } from "../../api/api";
+import { reviews as reviewsApi } from "../../api";
 import type { Review } from "../../types/review.types";
 import {
   CalendarDaysIcon,
@@ -17,8 +17,8 @@ export default function Reviews() {
     setLoading(true);
     const loadReviews = async () => {
       try {
-        const reviews = await getReviewsByRole();
-        setReviews(reviews);
+        const reviewsData = await reviewsApi.findAll();
+        setReviews(reviewsData);
         setLoading(false);
       } catch (error) {
         console.error("Error:", error);

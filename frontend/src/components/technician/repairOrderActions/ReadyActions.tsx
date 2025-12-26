@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { CheckCircleIcon, TruckIcon } from "@heroicons/react/24/outline";
-import { repairOrders } from "../../../api";
-import { OrderRepairStatus } from "../../../types";
-import type { RepairOrder } from "../../../types";
+import { repairOrders, type RepairOrder } from "../../../api";
 
 interface ReadyActionsProps {
   order: RepairOrder;
@@ -22,9 +20,7 @@ export function ReadyActions({ order, onUpdate }: ReadyActionsProps) {
     setError(null);
 
     try {
-      const updatedOrder = await repairOrders.update(order.id, {
-        status: OrderRepairStatus.DELIVERED,
-      });
+      const updatedOrder = await repairOrders.deliver(order.id);
       onUpdate(updatedOrder);
     } catch (err) {
       console.error("Error al marcar como entregado:", err);

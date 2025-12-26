@@ -9,7 +9,7 @@ import {
   formatDate,
   formatCurrency,
 } from "../../utils";
-import type { RepairOrder } from "../../types";
+import type { RepairOrder } from "../../types/repair-order.types";
 import { getBadgeClasses } from "../ui/Badge";
 
 interface RepairOrderCardProps {

@@ -1,5 +1,6 @@
+import { TicketServiceStatus } from '../types/repair-order-detail.types';
 import type { BadgeVariant } from '../components/ui/Badge';
-import { OrderRepairStatus, TicketServiceStatus } from '../types';
+import { OrderRepairStatus } from '../types/repair-order.types';
 
 /**
  * Obtiene el color del badge según el estado de la orden
@@ -10,7 +11,6 @@ export const getOrderStatusBadge = (status: OrderRepairStatus): BadgeVariant => 
     [OrderRepairStatus.WAITING_APPROVAL]: 'warning',
     [OrderRepairStatus.REJECTED]: 'danger',
     [OrderRepairStatus.IN_REPAIR]: 'info',
-    [OrderRepairStatus.WAITING_PARTS]: 'warning',
     [OrderRepairStatus.READY]: 'success',
     [OrderRepairStatus.DELIVERED]: 'success',
   };
@@ -27,7 +27,6 @@ export const getOrderStatusText = (status: OrderRepairStatus): string => {
     [OrderRepairStatus.WAITING_APPROVAL]: 'Esperando Aprobación',
     [OrderRepairStatus.REJECTED]: 'Rechazada',
     [OrderRepairStatus.IN_REPAIR]: 'En Reparación',
-    [OrderRepairStatus.WAITING_PARTS]: 'Esperando Piezas',
     [OrderRepairStatus.READY]: 'Lista para Entrega',
     [OrderRepairStatus.DELIVERED]: 'Entregada',
   };

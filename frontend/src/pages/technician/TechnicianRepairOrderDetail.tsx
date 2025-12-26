@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { repairOrders } from "../../api";
-import type { RepairOrder } from "../../types";
-import { OrderRepairStatus } from "../../types";
+import type { RepairOrder } from "../../types/repair-order.types";
+import { OrderRepairStatus } from "../../types/repair-order.types";
 import { RepairTimeline } from "../../components/repairOrderDetail/repairTimeline";
 import { RepairOrderTopBar } from "../../components/repairOrderDetail/repairOrderTopBar";
-import { SideBar } from "../../components/repairOrderDetail/SideBar";
+import { SideBar } from "../../components/repairOrderDetail/Sidebar";
 import {
   InReviewActions,
   InRepairActions,
   ReadyActions,
-  WaitingPartsInfo,
 } from "../../components/technician/repairOrderActions";
 
 export default function TechnicianRepairOrderDetail() {
@@ -25,6 +24,7 @@ export default function TechnicianRepairOrderDetail() {
       try {
         const data = await repairOrders.getById(id);
         setOrder(data);
+        console.log('data: ', data)
       } catch (error) {
         console.error("Error cargando orden:", error);
       } finally {
@@ -74,13 +74,6 @@ export default function TechnicianRepairOrderDetail() {
       case OrderRepairStatus.IN_REPAIR:
         return (
           <InRepairActions
-            order={order}
-            onUpdate={handleOrderUpdate}
-          />
-        );
-      case OrderRepairStatus.WAITING_PARTS:
-        return (
-          <WaitingPartsInfo
             order={order}
             onUpdate={handleOrderUpdate}
           />

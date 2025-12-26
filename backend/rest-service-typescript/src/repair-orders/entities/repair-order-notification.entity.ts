@@ -2,25 +2,25 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } f
 import { RepairOrder } from './repair-order.entity';
 import { NotificationStatus } from './enum/order-repair.enum';
 
-@Entity('repair_order_notification')
+@Entity('repair_order_notifications')
 export class RepairOrderNotification {
   @PrimaryGeneratedColumn('uuid')
-  id!: string;
+  id: string;
 
   @ManyToOne(() => RepairOrder, rp => rp.notifications, {onDelete: 'CASCADE'})
-  repairOrder!: RepairOrder;
+  repairOrder: RepairOrder;
 
   @Column()
-  title!: string;
+  title: string;
 
   @Column({ type: 'text'})
-  message!: string;
+  message: string;
 
   @Column({ type: 'timestamptz', nullable: true })
-  sentAt!: Date;
+  sentAt: Date;
 
   @Column({ type: 'enum', enum: NotificationStatus, default: NotificationStatus.SENT})
-  status?: NotificationStatus;
+  status: NotificationStatus;
 
   @CreateDateColumn()
   createdAt!: Date;

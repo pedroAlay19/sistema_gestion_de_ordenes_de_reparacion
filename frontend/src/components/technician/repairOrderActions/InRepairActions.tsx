@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ClockIcon, TrashIcon, WrenchScrewdriverIcon, CubeIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, WrenchScrewdriverIcon, CubeIcon } from "@heroicons/react/24/outline";
 import { repairOrders } from "../../../api";
-import { OrderRepairStatus } from "../../../types";
-import type { RepairOrder } from "../../../types";
+import type { RepairOrder } from "../../../types/repair-order.types";
 import type { 
   CreateRepairOrderDetailDto,
   CreateRepairOrderPartDto 
@@ -23,11 +22,23 @@ export function InRepairActions({ order, onUpdate }: InRepairActionsProps) {
     setError(null);
 
     try {
-      const updatedOrder = await repairOrders.update(order.id, {
-        details: details.length > 0 ? details : undefined,
-        parts: parts.length > 0 ? parts : undefined,
-      });
-      onUpdate(updatedOrder);
+      // Si la orden no tiene detalles aún, es la asignación inicial - usar assignWork
+      if (!order.repairOrderDetails || order.repairOrderDetails.length === 0) {
+        await repairOrders.assignWork(order.id, { details, parts });
+      } else {
+        // Si ya tiene detalles, agregar individualmente
+        for (const detail of details) {
+          await repairOrders.addDetail(order.id, detail);
+        }
+        
+        for (const part of parts) {
+          await repairOrders.addPart(order.id, part);
+        }
+      }
+      
+      // Recargar la orden completa desde el backend para asegurar datos consistentes
+      const refreshedOrder = await repairOrders.getById(order.id);
+      onUpdate(refreshedOrder);
     } catch (err) {
       console.error("Error guardando detalles:", err);
       setError("Error al guardar los detalles. Intente nuevamente.");
@@ -46,20 +57,10 @@ export function InRepairActions({ order, onUpdate }: InRepairActionsProps) {
     setError(null);
 
     try {
-      // Filtrar el detalle eliminado
-      const remainingDetails = order.repairOrderDetails?.filter(d => d.id !== detailId) || [];
-      
-      const updatedOrder = await repairOrders.update(order.id, {
-        details: remainingDetails.map(d => ({
-          id: d.id,
-          serviceId: d.service.id,
-          technicianId: d.technician.id,
-          unitPrice: d.unitPrice,
-          discount: d.discount || 0,
-          notes: d.notes || "",
-        })),
-      });
-      onUpdate(updatedOrder);
+      await repairOrders.removeDetail(order.id, detailId);
+      // Recargar la orden completa desde el backend para asegurar datos consistentes
+      const refreshedOrder = await repairOrders.getById(order.id);
+      onUpdate(refreshedOrder);
     } catch (err) {
       console.error("Error eliminando detalle:", err);
       setError("Error al eliminar el servicio. Intente nuevamente.");
@@ -77,42 +78,13 @@ export function InRepairActions({ order, onUpdate }: InRepairActionsProps) {
     setError(null);
 
     try {
-      // Filtrar la pieza eliminada
-      const remainingParts = order.repairOrderParts?.filter(p => p.id !== partId) || [];
-      
-      const updatedOrder = await repairOrders.update(order.id, {
-        parts: remainingParts.map(p => ({
-          id: p.id,
-          partId: p.part.id,
-          quantity: p.quantity,
-          imgUrl: p.imgUrl || "",
-        })),
-      });
-      onUpdate(updatedOrder);
+      await repairOrders.removePart(order.id, partId);
+      // Recargar la orden completa desde el backend para asegurar datos consistentes
+      const refreshedOrder = await repairOrders.getById(order.id);
+      onUpdate(refreshedOrder);
     } catch (err) {
       console.error("Error eliminando pieza:", err);
       setError("Error al eliminar la pieza. Intente nuevamente.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMarkAsWaitingParts = async () => {
-    if (!window.confirm("¿Marcar esta orden como esperando repuestos?")) {
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const updatedOrder = await repairOrders.update(order.id, {
-        status: OrderRepairStatus.WAITING_PARTS,
-      });
-      onUpdate(updatedOrder);
-    } catch (err) {
-      console.error("Error actualizando estado:", err);
-      setError("Error al actualizar el estado. Intente nuevamente.");
     } finally {
       setLoading(false);
     }
@@ -154,15 +126,7 @@ export function InRepairActions({ order, onUpdate }: InRepairActionsProps) {
                     )}
                     <div className="flex items-center gap-4 text-sm">
                       <span className="text-gray-700">
-                        Precio: <span className="font-bold text-blue-600">${detail.unitPrice}</span>
-                      </span>
-                      {detail.discount && detail.discount > 0 && (
-                        <span className="text-green-600">
-                          Descuento: ${detail.discount}
-                        </span>
-                      )}
-                      <span className="text-gray-700">
-                        Subtotal: <span className="font-bold text-gray-900">${detail.subTotal}</span>
+                        Precio: <span className="font-bold text-blue-600">${detail.repairPrice}</span>
                       </span>
                     </div>
                   </div>
@@ -212,18 +176,9 @@ export function InRepairActions({ order, onUpdate }: InRepairActionsProps) {
                         Precio unitario: <span className="font-medium">${part.part.unitPrice}</span>
                       </span>
                       <span className="text-gray-700">
-                        Subtotal: <span className="font-bold text-gray-900">${part.subTotal}</span>
+                        Total: <span className="font-bold text-gray-900">${part.quantity * part.part.unitPrice}</span>
                       </span>
                     </div>
-                    {part.imgUrl && (
-                      <div className="mt-2">
-                        <img 
-                          src={part.imgUrl} 
-                          alt={part.part.name}
-                          className="w-20 h-20 object-cover rounded-lg border border-purple-300"
-                        />
-                      </div>
-                    )}
                   </div>
                   <button
                     onClick={() => handleDeletePart(part.id)}
@@ -241,41 +196,7 @@ export function InRepairActions({ order, onUpdate }: InRepairActionsProps) {
       )}
 
       {/* Formulario para agregar más servicios/piezas */}
-      <AssignDetailsForm onSave={handleSaveDetails} />
-
-      {/* Botón destacado para marcar como esperando repuestos */}
-      <div className="bg-linear-to-r from-orange-50 to-yellow-50 rounded-2xl border-2 border-orange-300 p-6 shadow-lg">
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
-            <ClockIcon className="w-7 h-7 text-orange-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">
-              ¿Necesita repuestos para continuar?
-            </h3>
-            <p className="text-sm text-gray-600">
-              Si requiere piezas adicionales para completar la reparación, puede pausar temporalmente esta orden.
-            </p>
-          </div>
-        </div>
-        <button
-          onClick={handleMarkAsWaitingParts}
-          disabled={loading}
-          className="w-full bg-linear-to-r from-orange-600 to-orange-500 text-white py-4 px-6 rounded-xl font-semibold hover:from-orange-700 hover:to-orange-600 disabled:from-gray-300 disabled:to-gray-300 disabled:cursor-not-allowed transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-3 text-base"
-        >
-          {loading ? (
-            <>
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Actualizando estado...
-            </>
-          ) : (
-            <>
-              <ClockIcon className="w-6 h-6" />
-              Marcar como: Esperando Repuestos
-            </>
-          )}
-        </button>
-      </div>
+      <AssignDetailsForm order={order} onSave={handleSaveDetails} />
     </div>
   );
 }

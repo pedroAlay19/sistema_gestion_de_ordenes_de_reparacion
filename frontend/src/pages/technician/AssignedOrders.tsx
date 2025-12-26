@@ -6,11 +6,13 @@ import {
   WrenchScrewdriverIcon,
 } from "@heroicons/react/24/outline";
 import { RepairOrderCard } from "../../components/repairOrders";
-import type { RepairOrder } from "../../types";
-import { OrderRepairStatus } from "../../types";
-import { getRepairOrdersByEvaluator } from "../../api";
+import type { RepairOrder } from "../../types/repair-order.types";
+import { OrderRepairStatus } from "../../types/repair-order.types";
+import { repairOrders } from "../../api";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function AssignedOrders() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<RepairOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export default function AssignedOrders() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const data = await getRepairOrdersByEvaluator();
+        const data = await repairOrders.getByEvaluator(user!.id);
         setOrders(data);
       } catch (error) {
         console.error("Error cargando órdenes:", error);

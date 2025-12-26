@@ -1,9 +1,9 @@
 import { XMarkIcon } from "@heroicons/react/24/outline";
-import type { MaintenanceService } from "../../../types";
+import type { Service } from "../../../types/service.types";
 import type { Technician } from "../../../api";
 
 interface ServiceSelection {
-  service: MaintenanceService;
+  service: Service;
   technicianId: string;
   unitPrice: number;
   discount: number;

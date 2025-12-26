@@ -1,79 +1,78 @@
-/**
- * API Entry Point
- * Punto de entrada único para todas las APIs
- */
-
-// Services
 export { auth } from './auth';
+export { users } from './users';
 export { equipments } from './equipments';
-export { repairOrders } from './repair-orders';
-export { reviews } from './reviews';
 export { services } from './services';
 export { spareParts } from './spare-parts';
-export { technicians } from './technicians';
-export { users } from './users';
-export { admin } from './admin';
+export { repairOrders } from './repair-orders';
+export { reviews } from './reviews';
 export { uploadImage, supabase } from './supabase';
+export * from './reports';
 
-// DTOs
-export type { CreateEquipmentDto, UpdateEquipmentDto } from './equipments';
+// Re-export types desde types/
 export type { 
-  CreateRepairOrderDto, 
-  UpdateRepairOrderDto, 
-  UpdateRepairOrderDetailStatusDto,
+  CreateRepairOrderDto,
+  EvaluateRepairOrderDto,
+  AssignRepairWorkDto,
+  OrdersOverview,
+  RevenueStats,
+  OrdersByStatus,
+  TopServices,
+  RecentOrders,
+  RepairOrder,
+  OrderRepairStatus
+} from '../types/repair-order.types';
+
+export type {
   CreateRepairOrderDetailDto,
-  UpdateRepairOrderDetailDto,
+  UpdateDetailStatusDto,
+  RepairOrderDetail,
+  TicketServiceStatus
+} from '../types/repair-order-detail.types';
+
+export type {
   CreateRepairOrderPartDto,
-  UpdateRepairOrderPartDto
-} from './repair-orders';
-export type { CreateReviewDto } from './reviews';
-export type { Technician } from './technicians';
-export type { UpdateUserDto } from './users';
+  RepairOrderPart
+} from '../types/repair-order-part.types';
 
-import { admin } from './api';
-// Legacy exports for backward compatibility
-import { auth } from './auth';
-import { equipments } from './equipments';
-import { repairOrders } from './repair-orders';
-import { reviews } from './reviews';
-import { services } from './services';
-import { spareParts } from './spare-parts';
+export type {
+  User,
+  CreateUserDto,
+  UpdateUserDto,
+  UserRole,
+  UsersOverview,
+  TopClients,
+  TopTechnicians
+} from '../types/user.types';
 
-export const login = auth.login;
-export const register = auth.register;
-export const getProfile = auth.getProfile;
+export type {
+  Technician,
+  CreateTechnicianDto,
+  UpdateTechnicianDto
+} from '../types/technician.types';
 
-export const getEquipments = equipments.getAll;
-export const getEquipment = equipments.getById;
-export const createEquipment = equipments.create;
-export const updateEquipment = equipments.update;
-export const deleteEquipment = equipments.delete;
+export type {
+  Equipment,
+  CreateEquipmentDto,
+  UpdateEquipmentDto,
+  EquipmentType,
+  EquipmentStatus
+} from '../types/equipment.types';
 
-export const getRepairOrders = repairOrders.getAll;
-export const getRepairOrdersByEvaluator = repairOrders.getByEvaluator;
-export const getRepairOrder = repairOrders.getById;
-export const createRepairOrder = repairOrders.create;
-export const updateRepairOrder = repairOrders.update;
-export const deleteRepairOrder = repairOrders.delete;
+export type {
+  Service,
+  CreateMaintenanceServiceDto,
+  UpdateMaintenanceServiceDto
+} from '../types/service.types';
 
-export const createReview = reviews.create;
-export const getBestsReviews = reviews.getBest;
-export const getReviewByRepairOrderId = reviews.findByRepairOrderId;
-export const getReviewsByRole = reviews.findByRole;
-export const updateReview = reviews.update;
+export type {
+  SparePart,
+  CreateSparePartDto,
+  UpdateSparePartDto
+} from '../types/spare-part.types';
 
-export const getServices = services.getAll;
-export const getSpareParts = spareParts.getAll;
-
-// Admin exports
-export const getAllClients = admin.getAllClients;
-export const deleteClient = admin.deleteClient;
-
-export const createTechnician = admin.createTechnician;
-export const getAllTechnicians = admin.getAllTechnicians;
-export const updateTechnician = admin.updateTechnician;
-export const deleteTechnician = admin.deleteTechnician;
-
-export const getAllReviews = admin.getAllReviews;
-export const getAllSpareParts = admin.getAllSpareParts;
-export * from './dashboard-granular';
+export type {
+  Review,
+  BestReview,
+  CreateRepairOrderReviewDto,
+  UpdateRepairOrderReviewDto
+} from '../types/review.types';

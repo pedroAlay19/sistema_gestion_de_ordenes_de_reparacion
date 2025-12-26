@@ -1,5 +1,5 @@
 import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface AlertCardProps {
   title: string;

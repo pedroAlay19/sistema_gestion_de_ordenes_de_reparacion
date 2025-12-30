@@ -133,6 +133,16 @@ async isTokenRevoked(jti: string): Promise<boolean> {
     });
 
     await this.revokedTokenRepository.save(revokedToken);
+    console.log('✅ Token guardado en BD');
+    
+    const ttl = Math.floor((expiresAt.getTime() - Date.now()) / 1000);
+    
+    if (ttl > 0) {
+      await this.cacheService.cacheTokenRevocation(jti, ttl);
+      console.log('✅ revokeToken completado');
+    } else {
+      console.log('⚠️  [TOKEN-SERVICE] TTL <= 0, NO se cachea en Redis');
+    }
   }
 
   async verifyAccessToken(token: string): Promise<JwtPayload> {

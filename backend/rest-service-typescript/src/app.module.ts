@@ -8,8 +8,6 @@ import { RepairOrderReviewsModule } from './repair-order-reviews/repair-order-re
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { CacheModule } from '@nestjs/cache-manager';
-import { redisConfig } from './config/redis.config';
 
 @Module({
   imports: [
@@ -21,10 +19,6 @@ import { redisConfig } from './config/redis.config';
       global: true,
       secret: process.env.JWT_ACCESS_SECRET,
     }),
-    
-    // Cache con Redis compartido
-    CacheModule.register(redisConfig),
-    
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -44,5 +38,6 @@ import { redisConfig } from './config/redis.config';
   ],
   controllers: [],
   providers: [],
+  exports: []
 })
 export class AppModule {}

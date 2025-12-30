@@ -23,12 +23,12 @@ export class AuthGuard implements CanActivate {
 
     try {
       const payload = await this.localTokenValidation.validateTokenLocally(token);
-      
-      // Adjuntar payload al request
       request['user'] = payload;
       return true;
     } catch (error) {
-      console.log(error)
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
       throw new UnauthorizedException('Token inválido o expirado');
     }
   }

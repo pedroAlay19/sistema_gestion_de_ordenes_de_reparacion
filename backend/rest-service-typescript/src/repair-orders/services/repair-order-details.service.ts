@@ -72,7 +72,7 @@ export class RepairOrderDetailsService {
     notes?: string,
   ) {
     const detail = await this.repairOrderDetailRepository.findOne({
-      where: { id: detailId, technician: { id: technicianId } },
+      where: { id: detailId, technician: { userId: technicianId } },
       relations: ['technician', 'repairOrder'],
     });
 

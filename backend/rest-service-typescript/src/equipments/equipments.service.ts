@@ -19,7 +19,7 @@ export class EquipmentsService {
   ) {}
 
   async create(createEquipmentDto: CreateEquipmentDto, user: JwtPayload) {
-    const userFound = await this.userService.findOne(user.sub);
+    const userFound = await this.userService.getUserByAuthUserId(user.sub);
 
     const equipment = this.equipmentRepository.create({
       ...createEquipmentDto,
@@ -37,7 +37,7 @@ export class EquipmentsService {
     }
     return await this.equipmentRepository.find({
       relations: ['repairOrders'],
-      where: { user: { id: user.sub } },
+      where: { user: { userId: user.sub } },
       order: { createdAt: 'DESC' },
     });
   }
@@ -66,7 +66,7 @@ export class EquipmentsService {
 
   async findOne(id: string, user: JwtPayload) {
     const whereCondition =
-      user.role === UserRole.ADMIN || UserRole.TECHNICIAN ? { id } : { id, user: { id: user.sub } };
+      user.role === UserRole.ADMIN || UserRole.TECHNICIAN ? { id } : { id, user: { userId: user.sub } };
 
     const equipment = await this.equipmentRepository.findOne({
       where: whereCondition,

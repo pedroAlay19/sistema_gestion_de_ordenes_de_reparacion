@@ -4,22 +4,24 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from './auth/auth.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env',
     }),
 
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => [{
-        name: 'auth-service',
-        ttl: config.get<number>('RATE_LIMIT_TTL') || 60000, // 60 segundos
-        limit: config.get<number>('RATE_LIMIT_MAX') || 15, // 15 requests
-      }],
+      useFactory: (config: ConfigService) => [
+        {
+          name: 'auth-service',
+          ttl: config.get<number>('RATE_LIMIT_TTL') || 60000, // 60 segundos
+          limit: config.get<number>('RATE_LIMIT_MAX') || 15, // 15 requests
+        },
+      ],
     }),
 
     TypeOrmModule.forRootAsync({
@@ -33,6 +35,8 @@ import { AuthModule } from './auth/auth.module';
         logging: config.get<boolean>('DB_LOGGING'),
       }),
     }),
+
+    ScheduleModule.forRoot(),
 
     // Importar módulo de autenticación
     AuthModule,

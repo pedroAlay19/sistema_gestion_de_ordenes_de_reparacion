@@ -1,23 +1,22 @@
-import { Module } from '@nestjs/common';
-import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Global, Module } from '@nestjs/common';
 import { LocalTokenValidationService } from './services/local-token-validation.service';
 import { AuthGuard } from './guard/auth.guard';
+import { RolesGuard } from './guard/roles.guard';
+import { CacheService } from './services/cache.service';
 
+@Global()
 @Module({
-  imports: [
-    ConfigModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        secret: config.get('JWT_ACCESS_SECRET'),
-      }),
-    }),
-  ],
+  imports: [],
   providers: [
-    LocalTokenValidationService,AuthGuard,
+    LocalTokenValidationService,
+    AuthGuard,
+    RolesGuard, // Necesario para @Auth decorator
+    CacheService,
   ],
-  exports: [LocalTokenValidationService],
+  exports: [
+    LocalTokenValidationService,
+    AuthGuard,
+    RolesGuard, // Exportar para uso en controladores con @Auth
+  ],
 })
 export class AuthModule {}

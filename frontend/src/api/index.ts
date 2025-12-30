@@ -1,4 +1,4 @@
-export { auth } from './auth';
+export { auth, authHelpers } from './auth';
 export { users } from './users';
 export { equipments } from './equipments';
 export { services } from './services';
@@ -8,7 +8,6 @@ export { reviews } from './reviews';
 export { uploadImage, supabase } from './supabase';
 export * from './reports';
 
-// Re-export types desde types/
 export type { 
   CreateRepairOrderDto,
   EvaluateRepairOrderDto,
@@ -17,7 +16,6 @@ export type {
   RevenueStats,
   OrdersByStatus,
   TopServices,
-  RecentOrders,
   RepairOrder,
   OrderRepairStatus
 } from '../types/repair-order.types';
@@ -35,20 +33,28 @@ export type {
 } from '../types/repair-order-part.types';
 
 export type {
-  User,
-  CreateUserDto,
-  UpdateUserDto,
-  UserRole,
+  UserProfile,
+  UpdateProfileDto,
   UsersOverview,
-  TopClients,
-  TopTechnicians
 } from '../types/user.types';
 
 export type {
   Technician,
-  CreateTechnicianDto,
-  UpdateTechnicianDto
 } from '../types/technician.types';
+
+export type {
+  AuthUser,
+  LoginResponse,
+  RegisterResponse,
+  LoginDto,
+  RegisterDto,
+  RefreshTokenDto,
+  RefreshTokenResponse,
+  ValidateTokenResponse,
+  ProfileResponse,
+  LogoutResponse,
+  JwtPayload
+} from '../types/auth.types';
 
 export type {
   Equipment,

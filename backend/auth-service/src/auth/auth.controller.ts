@@ -8,6 +8,8 @@ import {
   Req,
   UseGuards,
   Ip,
+  Patch,
+  Param,
 } from '@nestjs/common';
 import type{ Request } from 'express';
 import { AuthService } from './auth.service';
@@ -18,6 +20,7 @@ import { AuthGuard } from './guards/auth.guard';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { Throttle } from '@nestjs/throttler';
 import { LoginThrottleGuard } from './guards/login-throttle.guard';
+import { UserRole } from './entities/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -30,6 +33,35 @@ export class AuthController {
     return {
       message: 'Usuario registrado exitosamente',
       user,
+    };
+  }
+
+  // Momentaneo
+  @Patch('change-role')
+  @HttpCode(HttpStatus.OK)
+  async changeUserRole(@Body() body: { userId: string; newRole: UserRole }) {
+    await this.authService.changeUserRole(body.userId, body.newRole);
+    return {
+      message: 'User role updated successfully',
+    };
+  }
+
+  @Post('register/technician')
+  @HttpCode(HttpStatus.CREATED)
+  async registerTechnician(@Body() registerDto: RegisterDto) {
+    const user = await this.authService.registerTechnician(registerDto);
+    return {
+      message: 'Tecnico registrado exitosamente',
+      user,
+    };
+  }
+
+  @Patch('deactivate-user/:id')
+  @HttpCode(HttpStatus.OK)
+  async deactivateUser(@Param('id') id: string) {
+    await this.authService.desactivateUser(id);
+    return {
+      message: 'User deactivated successfully',
     };
   }
 
@@ -77,7 +109,8 @@ export class AuthController {
   async logout(@Req() req: Request) {
     const user = req['user'] as JwtPayload;
 
-    // Calcular expiresAt del token
+    // user.exp es el momento exacto cuando expira el token, expresado como timestamp UNIX
+    // timestamp UNIX está en segundos, por eso se multiplica por 1000 para obtener milisegundos
     const expiresAt = new Date(user.exp! * 1000);
 
     await this.authService.logout(user.sub, user.jti, expiresAt);

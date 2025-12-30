@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { UserRole } from "../../types/auth.types";
 import type { Technician } from "../../api";
 
 const SignIn = () => {
@@ -17,20 +18,27 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
-      const user = await signIn(email, password);
+      const userProfile = await signIn(email, password);
+      
+      console.log('👤 Perfil recibido:', userProfile);
       
       // Redirigir según el rol del usuario
-      if (user.role === 'Technician') {
-        // Técnico evaluador → Dashboard, técnico regular → Mis Tareas
-        const technicianUser = user as Technician;
-        if (technicianUser.isEvaluator) {
+      if (userProfile.role === UserRole.TECHNICIAN) {
+        const techProfile = userProfile as Technician;
+        console.log('🔧 Es técnico - isEvaluator:', techProfile.isEvaluator);
+        
+        if (techProfile.isEvaluator === true) {
+          console.log('✅ Redirigiendo a /technician/orders (evaluador)');
           navigate("/technician/orders");
         } else {
+          console.log('✅ Redirigiendo a /technician/my-tasks (técnico regular)');
           navigate("/technician/my-tasks");
         }
-      } else if (user.role === 'Admin') {
+      } else if (userProfile.role === UserRole.ADMIN) {
+        console.log('✅ Redirigiendo a /admin/dashboard');
         navigate("/admin/dashboard");
       } else {
+        console.log('✅ Redirigiendo a /user/equipments');
         navigate("/user/equipments");
       }
     } catch (err) {

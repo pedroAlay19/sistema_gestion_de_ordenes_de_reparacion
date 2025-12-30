@@ -1,19 +1,9 @@
-import type { CreateUserDto, UpdateUserDto, User } from "./user.types";
+import type { RepairOrderDetail } from "./repair-order-detail.types";
+import type { UserProfile } from "./user.types";
 
-export interface Technician extends User {
-  specialty: string;
+export interface Technician extends UserProfile {
+  specialty?: string;
   isEvaluator: boolean;
   active: boolean;
-}
-
-export interface CreateTechnicianDto extends CreateUserDto {
-  specialty: string;
-  isEvaluator?: boolean;
-  active?: boolean;
-}
-
-export interface UpdateTechnicianDto extends UpdateUserDto {
-  specialty?: string;
-  active?: boolean;
-  isEvaluator?: boolean;
+  ticketServices?: RepairOrderDetail[];
 }

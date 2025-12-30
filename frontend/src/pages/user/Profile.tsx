@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { users, auth, type UpdateUserDto } from "../../api";
-import type { User } from "../../types/user.types";
+import { users } from "../../api";
+import type { UserProfile, UpdateProfileDto } from "../../types/user.types";
 
 export function Profile() {
-  const [profileData, setProfileData] = useState<User | null>(null);
+  const [profileData, setProfileData] = useState<UserProfile | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -13,7 +13,6 @@ export function Profile() {
   const [formData, setFormData] = useState({
     name: "",
     lastName: "",
-    email: "",
     phone: "",
     address: "",
   });
@@ -25,20 +24,17 @@ export function Profile() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("access_token");
-      if (token) {
-        const profile = await auth.getProfile(token);
-        setProfileData(profile);
-        setFormData({
-          name: profile.name || "",
-          lastName: profile.lastName || "",
-          email: profile.email || "",
-          phone: profile.phone || "",
-          address: profile.address || "",
-        });
-      }
+      const profile = await users.getMyProfile();
+      setProfileData(profile);
+      setFormData({
+        name: profile.name || "",
+        lastName: profile.lastName || "",
+        phone: profile.phone || "",
+        address: profile.address || "",
+      });
     } catch (err) {
       console.error("Error al cargar perfil:", err);
+      setError("Error al cargar el perfil");
     } finally {
       setLoading(false);
     }
@@ -50,16 +46,13 @@ export function Profile() {
     setSuccess(false);
 
     try {
-      const updateData: UpdateUserDto = {};
+      const updateData: UpdateProfileDto = {};
 
       if (formData.name !== profileData?.name) {
         updateData.name = formData.name;
       }
       if (formData.lastName !== profileData?.lastName) {
         updateData.lastName = formData.lastName;
-      }
-      if (formData.email !== profileData?.email) {
-        updateData.email = formData.email;
       }
       if (formData.phone !== profileData?.phone) {
         updateData.phone = formData.phone;
@@ -74,9 +67,9 @@ export function Profile() {
       setIsEditing(false);
 
       setTimeout(() => setSuccess(false), 3000);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error("Error al actualizar perfil:", err);
-      setError(err?.message || "Error al actualizar el perfil");
+      setError(err?.response?.data?.message || err?.message || "Error al actualizar el perfil");
     } finally {
       setSaving(false);
     }
@@ -86,7 +79,6 @@ export function Profile() {
     setFormData({
       name: profileData?.name || "",
       lastName: profileData?.lastName || "",
-      email: profileData?.email || "",
       phone: profileData?.phone || "",
       address: profileData?.address || "",
     });
@@ -165,7 +157,7 @@ export function Profile() {
                       ID de Usuario
                     </label>
                     <div className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 font-mono text-sm">
-                      {profileData?.id}
+                      {profileData?.userId}
                     </div>
                   </div>
                   <div>
@@ -191,6 +183,7 @@ export function Profile() {
                         setFormData({ ...formData, name: e.target.value })
                       }
                       disabled={!isEditing}
+                      placeholder="Ingresa tu nombre"
                       className={`w-full px-4 py-3 border border-gray-300 rounded-lg ${
                         isEditing
                           ? "bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -227,16 +220,9 @@ export function Profile() {
                     </label>
                     <input
                       type="email"
-                      value={formData.email}
-                      onChange={(e) =>
-                        setFormData({ ...formData, email: e.target.value })
-                      }
-                      disabled={!isEditing}
-                      className={`w-full px-4 py-3 border border-gray-300 rounded-lg ${
-                        isEditing
-                          ? "bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          : "bg-gray-50 text-gray-600"
-                      }`}
+                      value={profileData?.email || ""}
+                      disabled
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
                     />
                   </div>
                   <div>

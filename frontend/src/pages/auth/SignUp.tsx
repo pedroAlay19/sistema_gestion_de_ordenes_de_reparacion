@@ -10,11 +10,13 @@ const SignUp = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     // Validación frontend: verificar que las contraseñas coincidan
     if (password !== confirmPassword) {
@@ -30,7 +32,12 @@ const SignUp = () => {
     setIsLoading(true);
     try {
       await signUp(name, email, password);
-      navigate("/user/equipments");
+      setSuccess("¡Registro exitoso! Redirigiendo al inicio de sesión...");
+      
+      // Redirigir después de 2 segundos
+      setTimeout(() => {
+        navigate("/auth/signin");
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al registrarse");
     } finally {
@@ -63,14 +70,20 @@ const SignUp = () => {
             </div>
           )}
 
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-xl">
+              <p className="text-sm text-green-600">{success}</p>
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Nombre completo */}
+            {/* Nombre */}
             <div>
               <label
                 htmlFor="name"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Nombre
+                Nombre completo
               </label>
               <input
                 id="name"
@@ -79,7 +92,7 @@ const SignUp = () => {
                 onChange={(e) => setName(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-200"
-                placeholder="Hector Pedro"
+                placeholder="Juan Pérez"
                 disabled={isLoading}
               />
             </div>

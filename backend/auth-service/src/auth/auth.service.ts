@@ -6,11 +6,12 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
-import { User } from './entities/user.entity';
+import { User, UserRole } from './entities/user.entity';
 import { TokenService } from './services/token.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TokenPair } from './interfaces/jwt-payload.interface';
+import { RestServiceSyncService } from './services/rest-service-sync.service';
 
 @Injectable()
 export class AuthService {
@@ -18,6 +19,7 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private tokenService: TokenService,
+    private restServiceSync: RestServiceSyncService,
   ) {}
 
   async register(registerDto: RegisterDto): Promise<Omit<User, 'password'>> {
@@ -41,8 +43,52 @@ export class AuthService {
 
     const savedUser = await this.userRepository.save(user);
 
-    // Eliminar password de la respuesta
+    this.restServiceSync.syncUserProfile(savedUser).catch((err) => {
+      console.error('Sync user failed:', err);
+    });
     return savedUser;
+  }
+
+  async registerTechnician(
+    registerDto: RegisterDto,
+  ): Promise<Omit<User, 'password'>> {
+    // Verificar si el email ya existe
+    const existingUser = await this.userRepository.findOne({
+      where: { email: registerDto.email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('User with this email already exists');
+    }
+
+    // Hash del password
+    const hashedPassword = await bcrypt.hash(registerDto.password, 10);
+
+    // Crear usuario
+    const user = this.userRepository.create({
+      ...registerDto,
+      role: UserRole.TECHNICIAN,
+      password: hashedPassword,
+    });
+
+    const savedUser = await this.userRepository.save(user);
+
+    this.restServiceSync.syncTechnicianProfile(savedUser).catch((err) => {
+      console.error('Sync technician failed:', err);
+    });
+    return savedUser;
+  }
+
+  async desactivateUser(userId: string): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new UnauthorizedException(`User with id ${userId} not found`);
+    }
+
+    user.isActive = false;
+    await this.userRepository.save(user);
   }
 
   async login(
@@ -86,6 +132,16 @@ export class AuthService {
     );
   }
 
+  async changeUserRole(userId: string, newRole: UserRole): Promise<void> {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new UnauthorizedException('Usuario no encontrado');
+    }
+    user.role = newRole;
+    await this.userRepository.save(user);
+  }
 
   async refresh(
     refreshToken: string,
@@ -137,7 +193,6 @@ export class AuthService {
     await this.tokenService.revokeAllUserTokens(userId);
   }
 
-
   async getProfile(userId: string): Promise<Omit<User, 'password'>> {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -149,7 +204,6 @@ export class AuthService {
 
     return user;
   }
-
 
   async validateToken(token: string) {
     try {

@@ -5,33 +5,19 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { CreateTechnicianDto } from './dto/create-technician.dto';
-import { UpdateTechnicianDto } from './dto/update-technician.dto';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { UserRole } from './entities/enums/user-role.enum';
 import type{ JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { ActiveUser } from '../auth/decorators/active-user.decorator';
+import { SyncUserDto } from './dto/sync-user.dto';
+import { SyncTechnicianDto } from './dto/sync-technician.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
-
-  @Post()
-  @Auth(UserRole.ADMIN)
-  createUser(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.createUser(createUserDto);
-  }
-
-  @Post('technician')
-  @Auth(UserRole.ADMIN)
-  createTechnician(@Body() createTechnicianDto: CreateTechnicianDto) {
-    return this.usersService.createTechnician(createTechnicianDto);
-  }
 
   @Get()
   @Auth(UserRole.ADMIN) 
@@ -45,6 +31,13 @@ export class UsersController {
     return this.usersService.findTechnicians();
   }
 
+  @Get('profile/me')
+  @Auth(UserRole.USER, UserRole.ADMIN, UserRole.TECHNICIAN)
+  getMyProfile(@ActiveUser() user: JwtPayload) {
+    // user.sub = userId del auth-service
+    return this.usersService.getUserByAuthUserId(user.sub);
+  }
+
   @Get(':id')
   @Auth(UserRole.ADMIN)
   findOne(@Param('id') id: string) {
@@ -52,48 +45,36 @@ export class UsersController {
   }
 
   @Patch('profile')
-  @Auth(UserRole.USER, UserRole.ADMIN, UserRole.TECHNICIAN)
+  @Auth(UserRole.USER)
   updateUserProfile(
     @ActiveUser() user: JwtPayload,
-    @Body() updateUserDto: UpdateUserDto,
+    @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usersService.updateUser(user.sub, updateUserDto);
+    return this.usersService.updateProfileByAuthUserId(user.sub, updateProfileDto);
   }
 
   @Patch('technician/profile')
-  @Auth(UserRole.USER, UserRole.ADMIN, UserRole.TECHNICIAN)
+  @Auth(UserRole.TECHNICIAN)
   updateTechnicianProfile(
     @ActiveUser() user: JwtPayload,
-    @Body() updateTechnicianDto: UpdateTechnicianDto,
+    @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.usersService.updateTechnician(user.sub, updateTechnicianDto);
-  }
-
-
-  @Patch(':id')
-  @Auth(UserRole.ADMIN)
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.updateUser(id, updateUserDto);
-  }
-
-  @Patch('technician/:id')
-  @Auth(UserRole.ADMIN)
-  updateTechnician(
-    @Param('id') id: string,
-    @Body() updateTechnicianDto: UpdateTechnicianDto,
-  ) {
-    return this.usersService.updateTechnician(id, updateTechnicianDto);
-  }
-
-  @Delete(':id')
-  @Auth(UserRole.ADMIN)
-  remove(@Param('id') id: string) {
-    return this.usersService.remove(id);
+    return this.usersService.updateProfileByAuthUserId(user.sub, updateProfileDto);
   }
 
   @Get('stats/overview')
   @Auth(UserRole.ADMIN)
   usersOverview() {
     return this.usersService.usersOverview();
+  }
+
+  @Post('sync/user')
+  syncUser(@Body() syncUserDto: SyncUserDto) {
+    return this.usersService.syncUser(syncUserDto);
+  }
+
+  @Post('sync/technician')
+  syncTechnician(@Body() syncTechnicianDto: SyncTechnicianDto) {
+    return this.usersService.syncTechnician(syncTechnicianDto);
   }
 }

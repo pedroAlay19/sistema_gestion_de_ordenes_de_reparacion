@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import {
   MagnifyingGlassIcon,
-  TrashIcon,
   UserIcon,
   DocumentTextIcon,
 } from "@heroicons/react/24/outline";
 import { users } from "../../api";
-import type { User } from "../../types/user.types";
+import type { UserProfile } from "../../types/user.types";
 import { generateUsersReport } from "../../api/reports";
 import { downloadPdfFromBase64 } from "../../utils/pdfDownload";
 
 export default function ClientsManagement() {
-  const [clients, setClients] = useState<User[]>([]);
+  const [clients, setClients] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [generatingReport, setGeneratingReport] = useState(false);
@@ -29,18 +28,6 @@ export default function ClientsManagement() {
       console.error("Error loading clients:", error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Está seguro de eliminar este cliente?")) return;
-
-    try {
-      await users.remove(id);
-      setClients(clients.filter((c) => c.id !== id));
-    } catch (error) {
-      console.error("Error deleting client:", error);
-      alert("Error al eliminar el cliente");
     }
   };
 
@@ -62,11 +49,13 @@ export default function ClientsManagement() {
     }
   };
 
-  const filteredClients = clients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-  );
+  const filteredClients = searchTerm.trim() === ""
+    ? clients
+    : clients.filter(
+        (client) =>
+          (client.name?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+          (client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
+      );
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -149,17 +138,12 @@ export default function ClientsManagement() {
                         Dirección
                       </span>
                     </th>
-                    <th className="px-6 py-4 text-right">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </span>
-                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-800">
                   {filteredClients.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-16 text-center">
+                      <td colSpan={4} className="px-6 py-16 text-center">
                         <div className="flex flex-col items-center gap-3">
                           <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center">
                             <UserIcon className="w-8 h-8 text-gray-600" />
@@ -195,16 +179,6 @@ export default function ClientsManagement() {
                           <span className="text-sm text-gray-300 max-w-xs truncate block">
                             {client.address || "-"}
                           </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                          <button
-                            onClick={() => handleDelete(client.id)}
-                            className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Eliminar cliente"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                            Eliminar
-                          </button>
                         </td>
                       </tr>
                     ))

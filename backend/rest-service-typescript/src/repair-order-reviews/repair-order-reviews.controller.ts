@@ -23,11 +23,6 @@ export class RepairOrderReviewsController {
     return this.repairOrderReviewsService.findAll(user);
   }
 
-  @Get('best-reviews')
-  getBestReviews() {
-    return this.repairOrderReviewsService.findBestsReviews();
-  }
-
   @Get('repair-order/:repairOrderId')
   @Auth(UserRole.USER, UserRole.TECHNICIAN)
   findByRepairOrderId(@Param('repairOrderId') repairOrderId: string) {

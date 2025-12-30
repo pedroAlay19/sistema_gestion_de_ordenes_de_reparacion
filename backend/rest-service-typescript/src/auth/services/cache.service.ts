@@ -33,29 +33,6 @@ export class CacheService implements OnModuleInit {
   private buildKey(jti: string): string {
     return `${this.PREFIX}${jti}`;
   }
-
-  async cacheTokenRevocation(jti: string, ttl: number): Promise<void> {
-    try {
-      const key = this.buildKey(jti);
-      await this.redisClient.set(key, '1', 'EX', ttl);
-
-      this.logger.log(
-        `✅ Token revocado cacheado exitosamente: ${key} (TTL: ${ttl}s)`,
-      );
-      const verificar = await this.redisClient.get(key);
-      const ttlVerif = await this.redisClient.ttl(key);
-      this.logger.debug(
-        `🔍 Verificación inmediata - Valor: ${verificar}, TTL: ${ttlVerif}s`,
-      );
-    } catch (error) {
-      this.logger.error(
-        `Error al cachear token revocado: ${error instanceof Error ? error.message : String(error)}`,
-        error instanceof Error ? error.stack : undefined,
-      );
-      throw error;
-    }
-  }
-
   /**
    * Verifica si un token está en cache como revocado
    */

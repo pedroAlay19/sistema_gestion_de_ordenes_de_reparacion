@@ -1,43 +1,28 @@
 import { http } from "./http";
-import type {
-  Technician,
-  CreateTechnicianDto,
-  UpdateTechnicianDto,
-} from "../types/technician.types";
-import type {
-  User,
-  CreateUserDto,
-  UpdateUserDto,
-  UsersOverview,
-} from "../types/user.types";
+import type { Technician } from "../types/technician.types";
+import type { UserProfile, UpdateProfileDto, UsersOverview } from "../types/user.types";
 
 export const users = {
-  createUser: (data: CreateUserDto) => http.post<User>("/users", data, true),
+  // GET /users - Obtener todos los usuarios (solo ADMIN)
+  findUsers: () => http.get<UserProfile[]>("/users", true),
 
-  createTechnician: (data: CreateTechnicianDto) =>
-    http.post<Technician>("/users/technician", data, true),
-
-  findUsers: () => http.get<User[]>("/users", true),
-
+  // GET /users/technician - Obtener todos los técnicos (ADMIN y TECHNICIAN)
   findTechnicians: () => http.get<Technician[]>("/users/technician", true),
 
-  findOne: (id: string) => http.get<User>(`/users/${id}`, true),
+  // GET /users/profile/me - Obtener mi perfil (USER, ADMIN, TECHNICIAN)
+  getMyProfile: () => http.get<UserProfile>("/users/profile/me", true),
 
-  updateUserProfile: (data: UpdateUserDto) =>
-    http.patch<User>("/users/profile", data, true),
+  // GET /users/:id - Obtener un usuario específico (solo ADMIN)
+  findOne: (id: string) => http.get<UserProfile>(`/users/${id}`, true),
 
-  updateTechnicianProfile: (data: UpdateTechnicianDto) =>
+  // PATCH /users/profile - Actualizar perfil de usuario (solo USER)
+  updateUserProfile: (data: UpdateProfileDto) =>
+    http.patch<UserProfile>("/users/profile", data, true),
+
+  // PATCH /users/technician/profile - Actualizar perfil de técnico (solo TECHNICIAN)
+  updateTechnicianProfile: (data: UpdateProfileDto) =>
     http.patch<Technician>("/users/technician/profile", data, true),
 
-  updateUser: (id: string, data: UpdateUserDto) =>
-    http.patch<User>(`/users/${id}`, data, true),
-
-  updateTechnician: (id: string, data: UpdateTechnicianDto) =>
-    http.patch<Technician>(`/users/technician/${id}`, data, true),
-
-  remove: (id: string) => http.delete<void>(`/users/${id}`, true),
-
-  // Stats methods
-  getUsersOverview: () =>
-    http.get<UsersOverview>("/users/stats/overview", true),
+  // GET /users/stats/overview - Obtener resumen de usuarios (solo ADMIN)
+  getUsersOverview: () => http.get<UsersOverview>("/users/stats/overview", true),
 };

@@ -1,39 +1,33 @@
-import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, TableInheritance, UpdateDateColumn } from "typeorm";
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn, TableInheritance } from "typeorm";
 import { UserRole } from "./enums/user-role.enum";
 import {Equipment} from "../../equipments/entities/equipment.entity";
 
-@Entity('user')
+@Entity('user_profiles')
 @TableInheritance({ column: { type: 'enum', enum: UserRole, name: "role", default: UserRole.USER } })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column({ unique: true })
+  userId: string // Referencia al ID del usuario en el servicio de autenticación
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
+
   @Column()
   name: string;
 
-  @Column({nullable: true})
-  lastName: string;
-
-  @Column({unique: true})
+  @Column({ unique: true })
   email: string;
 
-  @Column({select: false}) // Por ahora para no tener problemas con la bd
-  password: string
+  @Column({nullable: true})
+  lastName?: string;
 
   @Column({nullable: true})
-  phone: string;
+  phone?: string;
 
   @Column({nullable: true})
-  address: string;
-
-  @Column({type: 'enum', enum: UserRole, default: UserRole.USER})
-  role: UserRole;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
+  address?: string;
 
   @OneToMany(() => Equipment, equipment => equipment.user, {nullable: true})
   equipments?: Equipment[];

@@ -1,34 +1,22 @@
-export interface User {
-  id: string;
-  name: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-  role: UserRole | string;
-}
+import type { UserRole } from "./auth.types";
+import type { Equipment } from "./equipment.types";
 
-export interface CreateUserDto {
-  name: string;
-  email: string;
-  password: string;
-  lastName?: string;
-  phone?: string;
-  address?: string;
-}
-
-export interface UpdateUserDto {
+export interface UserProfile {
+  id: string; // ID del perfil en rest-service
+  userId: string; // Referencia al ID del usuario en auth-service
+  role: UserRole;
+  email?: string; // Email del auth-service (opcional, para compatibilidad)
   name?: string;
-  email?: string;
   lastName?: string;
   phone?: string;
   address?: string;
+  equipments?: Equipment[];
 }
 
-export enum UserRole {
-  USER = "User",
-  TECHNICIAN = "Technician",
-  ADMIN = "Admin"
+export interface UpdateProfileDto {
+  lastName?: string;
+  phone?: string;
+  address?: string;
 }
 
 export interface UsersOverview {

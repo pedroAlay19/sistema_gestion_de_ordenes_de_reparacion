@@ -72,13 +72,13 @@ export class RepairOrdersService {
 
       case UserRole.TECHNICIAN: {
         return await this.repairOrderRepository.find({
-          where: { repairOrderDetails: { technician: { id: user.sub } } },
+          where: { repairOrderDetails: { technician: { userId: user.sub } } },
           relations: ['repairOrderDetails', 'repairOrderParts'],
         });
       }
       case UserRole.USER: {
         return await this.repairOrderRepository.find({
-          where: { equipment: { user: { id: user.sub } } },
+          where: { equipment: { user: { userId: user.sub } } },
           relations: ['equipment', 'repairOrderDetails', 'repairOrderParts'],
         });
       }
@@ -107,8 +107,8 @@ export class RepairOrdersService {
       case UserRole.TECHNICIAN:
         order = await this.repairOrderRepository.findOne({
           where: [
-            { id, repairOrderDetails: { technician: { id: user.sub } } },
-            { id, evaluatedBy: { id: user.sub } },
+            { id, repairOrderDetails: { technician: { userId: user.sub } } },
+            { id, evaluatedBy: { userId: user.sub } },
           ],
           relations: ['repairOrderDetails', 'repairOrderParts', 'equipment', 'repairOrderDetails.service', 'repairOrderDetails.technician', 'repairOrderParts.part'],
         });
@@ -116,7 +116,7 @@ export class RepairOrdersService {
 
       case UserRole.USER:
         order = await this.repairOrderRepository.findOne({
-          where: { id, equipment: { user: { id: user.sub } } },
+          where: { id, equipment: { user: { userId: user.sub } } },
           relations: ['equipment', 'repairOrderDetails', 'repairOrderParts', 'repairOrderDetails.service', 'repairOrderParts.part', 'repairOrderDetails.technician'],
         });
         break;
@@ -157,7 +157,7 @@ export class RepairOrdersService {
     technicianId: string,
   ): Promise<RepairOrder> {
     const order = await this.repairOrderRepository.findOne({
-      where: { id: orderId, evaluatedBy: { id: technicianId } },
+      where: { id: orderId, evaluatedBy: { userId: technicianId } },
       relations: ['equipment', 'evaluatedBy'],
     });
 
@@ -186,7 +186,7 @@ export class RepairOrdersService {
     userId: string,
   ): Promise<RepairOrder> {
     const order = await this.repairOrderRepository.findOne({
-      where: { id: orderId, equipment: { user: { id: userId } } },
+      where: { id: orderId, equipment: { user: { userId: userId } } },
       relations: ['equipment', 'equipment.user'],
     });
 
@@ -212,7 +212,7 @@ export class RepairOrdersService {
     userId: string,
   ): Promise<RepairOrder> {
     const order = await this.repairOrderRepository.findOne({
-      where: { id: orderId, equipment: { user: { id: userId } } },
+      where: { id: orderId, equipment: { user: { userId: userId } } },
       relations: ['equipment', 'equipment.user'],
     });
 

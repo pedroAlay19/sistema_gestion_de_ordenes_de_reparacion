@@ -7,7 +7,7 @@ import { CreateRepairOrderReviewDto } from './dto/create-repair-order-review.dto
 import { UpdateRepairOrderReviewDto } from './dto/update-repair-order-review.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RepairOrderReview } from './entities/repair-order-review.entity';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { RepairOrdersService } from 'src/repair-orders/repair-orders.service';
 import { OrderRepairStatus } from 'src/repair-orders/entities/enum/order-repair.enum';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -58,7 +58,7 @@ export class RepairOrderReviewsService {
         return await this.repairOrderReviewRepository.find({
           where: {
             repairOrder: {
-              repairOrderDetails: { technician: { id: user.sub } },
+              repairOrderDetails: { technician: { userId: user.sub } },
             },
           },
         });
@@ -66,31 +66,12 @@ export class RepairOrderReviewsService {
 
       case UserRole.USER: {
         return await this.repairOrderReviewRepository.find({
-          where: { repairOrder: { equipment: { user: { id: user.sub } } } },
+          where: { repairOrder: { equipment: { user: { userId: user.sub } } } },
         });
       }
       default:
         return [];
     }
-  }
-
-  async findBestsReviews() {
-    return await this.repairOrderReviewRepository.find({
-      where: { rating: MoreThanOrEqual(4), visible: true },
-      select: {
-        rating: true,
-        comment: true,
-        repairOrder: {
-          equipment: {
-            name: true,
-            user: {
-              name: true,
-              lastName: true,
-            },
-          },
-        },
-      },
-    });
   }
 
   async findByRepairOrderId(repairOrderId: string) {
@@ -115,7 +96,7 @@ export class RepairOrderReviewsService {
     }
 
     const reviewFound = await this.repairOrderReviewRepository.findOne({
-      where: { id, repairOrder: { equipment: { user: { id: user.sub } } } },
+      where: { id, repairOrder: { equipment: { user: { userId: user.sub } } } },
     });
     if (!reviewFound)
       throw new NotFoundException(`Review with id ${id} not found`);

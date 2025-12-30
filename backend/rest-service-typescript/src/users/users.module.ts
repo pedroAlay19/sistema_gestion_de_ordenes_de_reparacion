@@ -6,11 +6,12 @@ import { User } from './entities/user.entity';
 import { Technician } from './entities/technician.entity';
 import { HttpModule } from '@nestjs/axios';
 import { WebSocketNotificationService } from '../websocket/websocket-notification.service';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Technician]), HttpModule],
+  imports: [TypeOrmModule.forFeature([User, Technician]), HttpModule, AuthModule],
   controllers: [UsersController],
   providers: [UsersService, WebSocketNotificationService],
-  exports: [UsersService]
+  exports: [UsersService, TypeOrmModule],
 })
 export class UsersModule {}

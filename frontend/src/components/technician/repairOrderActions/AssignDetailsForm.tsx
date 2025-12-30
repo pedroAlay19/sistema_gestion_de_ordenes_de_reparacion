@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { WrenchScrewdriverIcon, CubeIcon } from "@heroicons/react/24/outline";
-import { services, spareParts, auth, users, repairOrders } from "../../../api";
+import { services, spareParts, users, repairOrders } from "../../../api";
 import type { Service } from "../../../types/service.types";
 import type { RepairOrder } from "../../../types/repair-order.types";
 import type { CreateRepairOrderDetailDto } from "../../../types/repair-order-detail.types";
@@ -70,19 +70,18 @@ export function AssignDetailsForm({ order, onSave, onCostCalculated }: AssignDet
         return;
       }
 
-      const [servicesData, techniciansData, partsData, profile] = await Promise.all([
+      const [servicesData, techniciansData, partsData, myProfile] = await Promise.all([
         services.getApplicableServices(order.equipment.id),
         users.findTechnicians(),
         spareParts.getAll(),
-        auth.getProfile(token),
+        users.getMyProfile(), // Usar users.getMyProfile() en lugar de auth.getProfile()
       ]);
       setAvailableServices(servicesData);
       // Filtrar solo técnicos activos y NO evaluadores
       setAvailableTechnicians(techniciansData.filter((t: Technician) => t.active && !t.isEvaluator));
       setAvailableParts(partsData);
-      // Verificar si el usuario actual es evaluador
-      const userTechnician = techniciansData.find((t: Technician) => t.id === profile.id);
-      setIsEvaluator(userTechnician?.isEvaluator || false);
+      // Verificar si el usuario actual es evaluador (myProfile ya incluye isEvaluator si es técnico)
+      setIsEvaluator((myProfile as Technician)?.isEvaluator === true);
     } catch (err) {
       console.error("Error cargando datos:", err);
       setError("Error al cargar los datos. Verifique que el backend esté corriendo.");

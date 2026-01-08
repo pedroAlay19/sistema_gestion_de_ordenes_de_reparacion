@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { EquipmentsService } from './equipments.service';
 import { CreateEquipmentDto } from './dto/create-equipment.dto';
@@ -23,6 +24,12 @@ export class EquipmentsController {
   @Auth(UserRole.USER)
   create(@Body() createEquipmentDto: CreateEquipmentDto, @ActiveUser() user: JwtPayload) {
     return this.equipmentsService.create(createEquipmentDto, user);
+  }
+
+  @Get('search')
+  @Auth(UserRole.USER)
+  search(@Query('q') query: string, @ActiveUser() user: JwtPayload) {
+    return this.equipmentsService.search(query, user);
   }
 
   @Get()

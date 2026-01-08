@@ -77,6 +77,22 @@ export class EquipmentsService {
     return equipment;
   }
 
+  async search(query: string, user: JwtPayload): Promise<Equipment[]> {
+    console.log(`Searching for equipment with query: "${query}" for user: ${user.sub}`);
+    // Búsqueda case-insensitive por nombre, marca o modelo
+    // Filtrando por el userId que coincida con user.sub (ID del auth-service)
+    const equipments = await this.equipmentRepository
+      .createQueryBuilder('equipment')
+      .leftJoinAndSelect('equipment.user', 'user')
+      .where('user.userId = :userId', { userId: user.sub })
+      .andWhere('(LOWER(equipment.name) LIKE LOWER(:query) OR LOWER(equipment.brand) LIKE LOWER(:query) OR LOWER(equipment.model) LIKE LOWER(:query))', { query: `%${query}%` })
+      .orderBy('equipment.createdAt', 'DESC')
+      .getMany();
+    
+    console.log(`Found ${equipments.length} equipment(s) matching "${query}" for user ${user.sub}`);
+    return equipments;
+  }
+
   async findOneEquipment(id: string) {
     const equipment = await this.equipmentRepository.findOneBy({ id });
     if (!equipment)

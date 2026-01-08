@@ -40,7 +40,7 @@ export class RepairOrdersController {
   }
 
   @Get('equipment/:equipmentId')
-  @Auth(UserRole.USER, UserRole.TECHNICIAN, UserRole.ADMIN)
+  // @Auth(UserRole.USER, UserRole.TECHNICIAN, UserRole.ADMIN)
   findByEquipment(@Param('equipmentId') equipmentId: string) {
     return this.repairOrdersService.findByEquipment(equipmentId);
   }

@@ -6,6 +6,7 @@ import { RepairOrdersModule } from './repair-orders/repair-orders.module';
 import { EquipmentsModule } from './equipments/equipments.module';
 import { RepairOrderReviewsModule } from './repair-order-reviews/repair-order-reviews.module';
 import { AuthModule } from './auth/auth.module';
+import { LLMAdapterModule } from './llm-adapter/llm-adapter.module';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 
@@ -35,6 +36,7 @@ import { JwtModule } from '@nestjs/jwt';
     EquipmentsModule,
     RepairOrderReviewsModule,
     AuthModule,
+    LLMAdapterModule,
   ],
   controllers: [],
   providers: [],

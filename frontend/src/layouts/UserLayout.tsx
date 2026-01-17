@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import UserSidebar from '../components/UserSidebar';
+import FloatingChatWidget from '../components/chat/FloatingChatWidget';
 
 export default function UserLayout() {
   return (
@@ -8,6 +9,8 @@ export default function UserLayout() {
       <div className="flex-1 ml-20">
         <Outlet />
       </div>
+
+      <FloatingChatWidget />
     </div>
   );
 }

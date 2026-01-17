@@ -100,39 +100,41 @@ export class GeminiProvider implements ILLMProvider {
    * - { inlineData: { mimeType: "image/jpeg", data: "base64..." } } for images
    */
   private convertMessagesToGeminiFormat(messages: Message[]): GeminiMessage[] {
-    return messages.map((msg) => {
-      const parts: Part[] = [];
-      
-      // Iterate through content array
-      for (const contentPiece of msg.content) {
-        if (contentPiece.type === 'text' && contentPiece.text) {
-          parts.push({ text: contentPiece.text });
-        } else if (contentPiece.type === 'image') {
-          if (contentPiece.imageBase64) {
-            // Remove data URL prefix if present (data:image/jpeg;base64,)
-            const base64Data = contentPiece.imageBase64.includes(',')
-              ? contentPiece.imageBase64.split(',')[1]
-              : contentPiece.imageBase64;
+    return messages
+      .map((msg) => {
+        const parts: Part[] = [];
+        
+        // Iterate through content array
+        for (const contentPiece of msg.content) {
+          if (contentPiece.type === 'text' && contentPiece.text) {
+            parts.push({ text: contentPiece.text });
+          } else if (contentPiece.type === 'image') {
+            if (contentPiece.imageBase64) {
+              // Remove data URL prefix if present (data:image/jpeg;base64,)
+              const base64Data = contentPiece.imageBase64.includes(',')
+                ? contentPiece.imageBase64.split(',')[1]
+                : contentPiece.imageBase64;
 
-            parts.push({
-              inlineData: {
-                mimeType: contentPiece.mimeType || 'image/jpeg',
-                data: base64Data,
-              },
-            });
-          } else if (contentPiece.imageUrl) {
-            // For remote URLs, add text reference (Gemini can't fetch URLs directly)
-            parts.push({ 
-              text: `[Image URL: ${contentPiece.imageUrl}]` 
-            });
+              parts.push({
+                inlineData: {
+                  mimeType: contentPiece.mimeType || 'image/jpeg',
+                  data: base64Data,
+                },
+              });
+            } else if (contentPiece.imageUrl) {
+              // For remote URLs, add text reference (Gemini can't fetch URLs directly)
+              parts.push({ 
+                text: `[Image URL: ${contentPiece.imageUrl}]` 
+              });
+            }
           }
         }
-      }
-      
-      return {
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts,
-      };
-    });
+        
+        return {
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts,
+        };
+      })
+      .filter(msg => msg.parts.length > 0); // Remove messages with no parts
   }
 }

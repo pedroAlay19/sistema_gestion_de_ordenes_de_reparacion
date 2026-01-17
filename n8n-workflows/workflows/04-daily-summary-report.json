@@ -1,0 +1,206 @@
+{
+  "name": "04 - Daily Summary Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-daily-8am",
+      "name": "Schedule: Every Day 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/stats/overview",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-orders-overview",
+      "name": "Get Orders Overview",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/stats/revenue",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-revenue-stats",
+      "name": "Get Revenue Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 350]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/stats/by-status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-orders-by-status",
+      "name": "Get Orders By Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Consolidar datos de todas las peticiones\nconst overview = $input.item(0).json;\nconst revenue = $input.item(1).json;\nconst byStatus = $input.item(2).json;\n\nconst today = new Date();\nconst dateStr = today.toLocaleDateString('es-EC', { \n  weekday: 'long', \n  year: 'numeric', \n  month: 'long', \n  day: 'numeric',\n  timeZone: 'America/Guayaquil'\n});\n\n// Calcular porcentajes\nconst completionRate = overview.totalOrders > 0 \n  ? ((overview.completedOrders / overview.totalOrders) * 100).toFixed(1)\n  : 0;\n\nconst activeRate = overview.totalOrders > 0\n  ? ((overview.activeOrders / overview.totalOrders) * 100).toFixed(1)\n  : 0;\n\n// Construir resumen por estado\nlet statusBreakdown = '';\nif (byStatus.ordersByStatus) {\n  byStatus.ordersByStatus.forEach(status => {\n    if (status.count > 0) {\n      const emoji = {\n        'IN_REVIEW': '🔍',\n        'WAITING_APPROVAL': '⏳',\n        'IN_REPAIR': '🔧',\n        'READY': '✅',\n        'DELIVERED': '📦',\n        'REJECTED': '❌'\n      }[status.status] || '📋';\n      \n      const label = {\n        'IN_REVIEW': 'En Revisión',\n        'WAITING_APPROVAL': 'Esperando Aprobación',\n        'IN_REPAIR': 'En Reparación',\n        'READY': 'Listas para Entrega',\n        'DELIVERED': 'Entregadas',\n        'REJECTED': 'Rechazadas'\n      }[status.status] || status.status;\n      \n      statusBreakdown += `${emoji} ${label}: ${status.count}\\n`;\n    }\n  });\n}\n\nreturn [{\n  json: {\n    date: dateStr,\n    totalOrders: overview.totalOrders || 0,\n    activeOrders: overview.activeOrders || 0,\n    completedOrders: overview.completedOrders || 0,\n    rejectedOrders: overview.rejectedOrders || 0,\n    totalRevenue: revenue.totalRevenue || 0,\n    averageCost: revenue.averageCost || 0,\n    completionRate,\n    activeRate,\n    statusBreakdown: statusBreakdown.trim(),\n    adminPhone: 'whatsapp:+593979154106',\n    adminEmail: 'alanjoel311@gmail.com'\n  }\n}];"
+      },
+      "id": "consolidate-data",
+      "name": "Consolidate Report Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "fromNumber": "whatsapp:+17609356606",
+        "toNumber": "={{$json.adminPhone}}",
+        "message": "📊 *RESUMEN DIARIO*\n{{$json.date}}\n\n━━━━━━━━━━━━━━━━━━━━━\n📈 *ESTADÍSTICAS GENERALES*\n━━━━━━━━━━━━━━━━━━━━━\n\n📋 Total de Órdenes: *{{$json.totalOrders}}*\n🔄 Órdenes Activas: *{{$json.activeOrders}}* ({{$json.activeRate}}%)\n✅ Completadas: *{{$json.completedOrders}}* ({{$json.completionRate}}%)\n❌ Rechazadas: *{{$json.rejectedOrders}}*\n\n━━━━━━━━━━━━━━━━━━━━━\n💰 *INGRESOS*\n━━━━━━━━━━━━━━━━━━━━━\n\n💵 Ingresos Totales: *${{$json.totalRevenue}}*\n📊 Costo Promedio: *${{$json.averageCost}}*\n\n━━━━━━━━━━━━━━━━━━━━━\n📦 *ÓRDENES POR ESTADO*\n━━━━━━━━━━━━━━━━━━━━━\n\n{{$json.statusBreakdown}}\n\n━━━━━━━━━━━━━━━━━━━━━\n\n{{ $json.activeOrders > 10 ? '⚠️ *ATENCIÓN:* Hay muchas órdenes activas' : $json.activeOrders > 5 ? '👍 Flujo de trabajo normal' : '✅ Pocos trabajos pendientes' }}\n\n🚀 ¡Que tengas un excelente día!",
+        "credentials": {
+          "twilioApi": {
+            "id": "2",
+            "name": "Twilio WhatsApp"
+          }
+        }
+      },
+      "id": "send-whatsapp-report",
+      "name": "Send WhatsApp Report",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "2",
+          "name": "Twilio WhatsApp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.adminEmail}}",
+        "subject": "📊 Resumen Diario del Sistema - {{$json.date}}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: #f3f4f6; }\n    .container { max-width: 700px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 12px 12px 0 0; text-align: center; }\n    .content { background: white; padding: 40px; border-radius: 0 0 12px 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin: 30px 0; }\n    .stat-card { background: #f9fafb; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; }\n    .stat-value { font-size: 32px; font-weight: bold; color: #667eea; margin: 10px 0; }\n    .stat-label { color: #6b7280; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px; }\n    .status-table { width: 100%; border-collapse: collapse; margin: 20px 0; }\n    .status-table td { padding: 12px; border-bottom: 1px solid #e5e7eb; }\n    .status-table tr:last-child td { border-bottom: none; }\n    .emoji { font-size: 20px; margin-right: 8px; }\n    .revenue-box { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 25px; border-radius: 8px; text-align: center; margin: 25px 0; }\n    .revenue-amount { font-size: 42px; font-weight: bold; margin: 10px 0; }\n    .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #e5e7eb; color: #6b7280; font-size: 13px; }\n    .alert { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 4px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1 style=\"margin: 0; font-size: 28px;\">📊 Resumen Diario del Sistema</h1>\n      <p style=\"margin: 10px 0 0 0; opacity: 0.9;\">{{$json.date}}</p>\n    </div>\n    <div class=\"content\">\n      \n      <h2 style=\"color: #1f2937; margin-top: 0;\">📈 Estadísticas Generales</h2>\n      \n      <div class=\"stat-grid\">\n        <div class=\"stat-card\">\n          <div class=\"stat-label\">Total de Órdenes</div>\n          <div class=\"stat-value\">{{$json.totalOrders}}</div>\n        </div>\n        <div class=\"stat-card\">\n          <div class=\"stat-label\">Órdenes Activas</div>\n          <div class=\"stat-value\">{{$json.activeOrders}}</div>\n          <div style=\"font-size: 14px; color: #6b7280;\">{{$json.activeRate}}% del total</div>\n        </div>\n        <div class=\"stat-card\">\n          <div class=\"stat-label\">Completadas</div>\n          <div class=\"stat-value\" style=\"color: #10b981;\">{{$json.completedOrders}}</div>\n          <div style=\"font-size: 14px; color: #6b7280;\">{{$json.completionRate}}% tasa de éxito</div>\n        </div>\n        <div class=\"stat-card\">\n          <div class=\"stat-label\">Rechazadas</div>\n          <div class=\"stat-value\" style=\"color: #ef4444;\">{{$json.rejectedOrders}}</div>\n        </div>\n      </div>\n      \n      <div class=\"revenue-box\">\n        <div style=\"font-size: 16px; opacity: 0.9;\">💰 INGRESOS TOTALES</div>\n        <div class=\"revenue-amount\">${{$json.totalRevenue}}</div>\n        <div style=\"font-size: 16px; opacity: 0.9;\">Costo Promedio: ${{$json.averageCost}}</div>\n      </div>\n      \n      <h2 style=\"color: #1f2937;\">📦 Desglose por Estado</h2>\n      \n      <table class=\"status-table\">\n        {{#each ($json.statusBreakdown.split('\\n'))}}}\n        <tr>\n          <td>{{this}}</td>\n        </tr>\n        {{/each}}\n      </table>\n      \n      {{ $json.activeOrders > 10 ? '<div class=\"alert\">⚠️ <strong>ATENCIÓN:</strong> Hay un alto número de órdenes activas. Considera asignar más recursos.</div>' : '' }}\n      \n      <div class=\"footer\">\n        <p><strong>Sistema de Gestión de Reparaciones</strong></p>\n        <p>Reporte generado automáticamente por n8n</p>\n        <p style=\"margin-top: 15px;\">🚀 ¡Que tengas un excelente día!</p>\n      </div>\n      \n    </div>\n  </div>\n</body>\n</html>",
+        "credentials": {
+          "smtp": {
+            "id": "1",
+            "name": "Gmail SMTP"
+          }
+        }
+      },
+      "id": "send-email-report",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [850, 400],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "Gmail SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule: Every Day 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Orders Overview",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Revenue Stats",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Orders By Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Orders Overview": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Report Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Revenue Stats": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Report Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Orders By Status": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Report Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidate Report Data": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "4",
+  "id": "daily-summary-report",
+  "meta": {
+    "instanceId": "n8n-repair-system"
+  },
+  "tags": []
+}

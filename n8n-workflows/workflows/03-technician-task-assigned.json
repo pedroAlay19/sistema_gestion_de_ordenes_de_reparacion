@@ -1,0 +1,286 @@
+{
+  "name": "03 - Technician Task Assigned",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-assigned",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-task-assigned",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "task-assigned"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.detailId}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.body.technicianPhone}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "validate-task",
+      "name": "Validate Task Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "fromNumber": "whatsapp:+17609356606",
+        "toNumber": "={{$json.body.technicianPhone.startsWith('whatsapp:') ? $json.body.technicianPhone : 'whatsapp:+593' + $json.body.technicianPhone}}",
+        "message": "👨‍🔧 *NUEVA TAREA ASIGNADA*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🔧 Servicio: {{$json.body.serviceName}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n👤 Cliente: {{$json.body.clientName}}\n\n💰 Precio: ${{$json.body.repairPrice}}\n{{ $json.body.priority === 'high' ? '🔴 *PRIORIDAD ALTA*' : $json.body.priority === 'medium' ? '🟡 Prioridad Media' : '🟢 Prioridad Baja' }}\n\n{{ $json.body.notes ? '📝 Notas: ' + $json.body.notes : '' }}\n\n⏰ Asignada: {{$now.toLocaleString('es-EC', { timeZone: 'America/Guayaquil' })}}\n\n👉 Actualiza el estado de tu tarea en el sistema.",
+        "credentials": {
+          "twilioApi": {
+            "id": "2",
+            "name": "Twilio WhatsApp"
+          }
+        }
+      },
+      "id": "send-whatsapp-task",
+      "name": "Send WhatsApp Task",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 200],
+      "credentials": {
+        "twilioApi": {
+          "id": "2",
+          "name": "Twilio WhatsApp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.technicianEmail}}",
+        "subject": "👨‍🔧 Nueva Tarea: {{$json.body.serviceName}} - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #7c3aed; color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }\n    .task-box { background: white; padding: 20px; margin: 15px 0; border-left: 4px solid #7c3aed; border-radius: 4px; }\n    .priority-high { border-left-color: #ef4444; background: #fef2f2; }\n    .priority-medium { border-left-color: #f59e0b; background: #fffbeb; }\n    .priority-low { border-left-color: #10b981; background: #f0fdf4; }\n    .price { font-size: 24px; color: #7c3aed; font-weight: bold; margin: 10px 0; }\n    .info-row { display: flex; justify-content: space-between; margin: 8px 0; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }\n    .label { font-weight: bold; color: #6b7280; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>👨‍🔧 Nueva Tarea Asignada</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hola <strong>{{$json.body.technicianName}}</strong>,</p>\n      \n      <p>Se te ha asignado una nueva tarea de reparación:</p>\n      \n      <div class=\"task-box {{ $json.body.priority === 'high' ? 'priority-high' : $json.body.priority === 'medium' ? 'priority-medium' : 'priority-low' }}\">\n        <h2 style=\"margin-top: 0;\">🔧 {{$json.body.serviceName}}</h2>\n        \n        <div class=\"info-row\">\n          <span class=\"label\">📋 Orden:</span>\n          <span>#{{$json.body.orderId.slice(0,8)}}</span>\n        </div>\n        \n        <div class=\"info-row\">\n          <span class=\"label\">🛠️ Equipo:</span>\n          <span>{{$json.body.equipmentType}}</span>\n        </div>\n        \n        <div class=\"info-row\">\n          <span class=\"label\">👤 Cliente:</span>\n          <span>{{$json.body.clientName}}</span>\n        </div>\n        \n        <div class=\"info-row\">\n          <span class=\"label\">🎯 Prioridad:</span>\n          <span>{{ $json.body.priority === 'high' ? '🔴 ALTA' : $json.body.priority === 'medium' ? '🟡 Media' : '🟢 Baja' }}</span>\n        </div>\n        \n        <div class=\"price\">💰 ${{$json.body.repairPrice}}</div>\n        \n        {{ $json.body.serviceDescription ? '<p><strong>📝 Descripción:</strong><br>' + $json.body.serviceDescription + '</p>' : '' }}\n        \n        {{ $json.body.notes ? '<div style=\"background: #fef3c7; padding: 12px; border-radius: 6px; margin-top: 15px;\"><strong>📌 Notas Importantes:</strong><br>' + $json.body.notes + '</div>' : '' }}\n      </div>\n      \n      <p><strong>⏰ Asignada:</strong> {{$now.toLocaleString('es-EC', { timeZone: 'America/Guayaquil', dateStyle: 'full', timeStyle: 'short' })}}</p>\n      \n      <p style=\"margin-top: 30px;\">Por favor actualiza el estado de tu tarea en el sistema a medida que avanzas:</p>\n      <ul>\n        <li>🟡 <strong>EN PROGRESO</strong> - Cuando comiences a trabajar</li>\n        <li>✅ <strong>COMPLETADA</strong> - Cuando termines</li>\n      </ul>\n      \n      <p style=\"color: #6b7280; font-size: 14px; margin-top: 20px;\">¡Gracias por tu excelente trabajo!</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "credentials": {
+          "smtp": {
+            "id": "1",
+            "name": "Gmail SMTP"
+          }
+        }
+      },
+      "id": "send-email-task",
+      "name": "Send Email Task",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [700, 350],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "unit": "hours",
+        "amount": 2
+      },
+      "id": "wait-2-hours",
+      "name": "Wait 2 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/detail/{{$json.body.detailId}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "check-task-status",
+      "name": "Check Task Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.status}}",
+              "value2": "PENDING"
+            }
+          ]
+        }
+      },
+      "id": "is-still-pending",
+      "name": "Still Pending?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1100, 500]
+    },
+    {
+      "parameters": {
+        "fromNumber": "whatsapp:+17609356606",
+        "toNumber": "={{$node['Webhook'].json.body.technicianPhone.startsWith('whatsapp:') ? $node['Webhook'].json.body.technicianPhone : 'whatsapp:+593' + $node['Webhook'].json.body.technicianPhone}}",
+        "message": "⏰ *RECORDATORIO DE TAREA*\n\n📋 Orden: #{{$node['Webhook'].json.body.orderId.slice(0,8)}}\n🔧 Servicio: {{$node['Webhook'].json.body.serviceName}}\n\n⚠️ Esta tarea fue asignada hace 2 horas y aún está pendiente.\n\n👉 Por favor actualiza el estado en el sistema si ya comenzaste a trabajar en ella.",
+        "credentials": {
+          "twilioApi": {
+            "id": "2",
+            "name": "Twilio WhatsApp"
+          }
+        }
+      },
+      "id": "send-reminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [1300, 450],
+      "credentials": {
+        "twilioApi": {
+          "id": "2",
+          "name": "Twilio WhatsApp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Task notification sent\", \"detailId\": $json.body.detailId } }}"
+      },
+      "id": "response-success",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"Invalid task data\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "response-error",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [650, 450]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Task Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Task Data": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Task",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Task",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait 2 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Task": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Task": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Task Status": {
+      "main": [
+        [
+          {
+            "node": "Still Pending?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still Pending?": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "3",
+  "id": "technician-task-assigned",
+  "meta": {
+    "instanceId": "n8n-repair-system"
+  },
+  "tags": []
+}

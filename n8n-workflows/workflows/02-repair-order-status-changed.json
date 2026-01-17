@@ -1,0 +1,334 @@
+{
+  "name": "02 - Repair Order Status Changed",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "repair-order-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-status-changed",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "repair-order-status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.newStatus}}",
+              "value2": "WAITING_APPROVAL"
+            }
+          ]
+        }
+      },
+      "id": "check-status-waiting-approval",
+      "name": "Status: WAITING_APPROVAL",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.newStatus}}",
+              "value2": "IN_REPAIR"
+            }
+          ]
+        }
+      },
+      "id": "check-status-in-repair",
+      "name": "Status: IN_REPAIR",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.newStatus}}",
+              "value2": "READY"
+            }
+          ]
+        }
+      },
+      "id": "check-status-ready",
+      "name": "Status: READY",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 600]
+    },
+    {
+      "parameters": {
+        "fromNumber": "whatsapp:+17609356606",
+        "toNumber": "whatsapp:+593979154106",
+        "message": "💰 *PRESUPUESTO LISTO*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n\n🔍 *Diagnóstico:*\n{{$json.body.diagnosis}}\n\n💵 *Costo Estimado:* ${{$json.body.estimatedCost}}\n\n👉 Ingresa al sistema para aprobar o rechazar la reparación.",
+        "credentials": {
+          "twilioApi": {
+            "id": "2",
+            "name": "Twilio WhatsApp"
+          }
+        }
+      },
+      "id": "whatsapp-waiting-approval",
+      "name": "WhatsApp: Budget Ready",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 100],
+      "credentials": {
+        "twilioApi": {
+          "id": "2",
+          "name": "Twilio WhatsApp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.clientEmail}}",
+        "subject": "💰 Presupuesto Listo - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #10b981; color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }\n    .info-box { background: white; padding: 15px; margin: 15px 0; border-left: 4px solid #10b981; }\n    .price { font-size: 32px; color: #10b981; font-weight: bold; text-align: center; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>💰 Presupuesto de Reparación</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hola <strong>{{$json.body.clientName}}</strong>,</p>\n      \n      <p>Hemos evaluado tu equipo y tenemos el presupuesto listo:</p>\n      \n      <div class=\"info-box\">\n        <h3>🔍 Diagnóstico</h3>\n        <p>{{$json.body.diagnosis}}</p>\n      </div>\n      \n      <div class=\"price\">\n        ${{$json.body.estimatedCost}}\n      </div>\n      \n      <p style=\"text-align: center;\"><strong>Costo estimado de reparación</strong></p>\n      \n      <p>Por favor ingresa al sistema para <strong>aprobar o rechazar</strong> esta reparación.</p>\n      \n      <p style=\"color: #6b7280; font-size: 14px;\">Una vez aprobado, comenzaremos inmediatamente con la reparación.</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "credentials": {
+          "smtp": {
+            "id": "1",
+            "name": "Gmail SMTP"
+          }
+        }
+      },
+      "id": "email-waiting-approval",
+      "name": "Email: Budget Ready",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [700, 250],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromNumber": "whatsapp:+17609356606",
+        "toNumber": "={{$json.body.technicianPhone.startsWith('whatsapp:') ? $json.body.technicianPhone : 'whatsapp:+593' + $json.body.technicianPhone}}",
+        "message": "✅ *ORDEN APROBADA*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n👤 Cliente: {{$json.body.clientName}}\n\n🚀 El cliente aprobó la reparación.\n\n👉 Puedes comenzar a trabajar en esta orden.",
+        "credentials": {
+          "twilioApi": {
+            "id": "2",
+            "name": "Twilio WhatsApp"
+          }
+        }
+      },
+      "id": "whatsapp-in-repair",
+      "name": "WhatsApp: Approved",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 400],
+      "credentials": {
+        "twilioApi": {
+          "id": "2",
+          "name": "Twilio WhatsApp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromNumber": "whatsapp:+17609356606",
+        "toNumber": "whatsapp:+593979154106",
+        "message": "🎉 *¡TU EQUIPO ESTÁ LISTO!*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n\n✅ La reparación ha finalizado\n💰 Costo Final: ${{$json.body.finalCost || $json.body.estimatedCost}}\n\n📍 Puedes retirar tu equipo en nuestro taller.\n\n⏰ Horario: Lun-Vie 9:00 AM - 6:00 PM",
+        "credentials": {
+          "twilioApi": {
+            "id": "2",
+            "name": "Twilio WhatsApp"
+          }
+        }
+      },
+      "id": "whatsapp-ready",
+      "name": "WhatsApp: Ready",
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [700, 600],
+      "credentials": {
+        "twilioApi": {
+          "id": "2",
+          "name": "Twilio WhatsApp"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.clientEmail}}",
+        "subject": "🎉 ¡Tu Equipo Está Listo! - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #059669; color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }\n    .success { background: #d1fae5; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0; }\n    .price { font-size: 28px; color: #059669; font-weight: bold; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>🎉 ¡Reparación Completada!</h1>\n    </div>\n    <div class=\"content\">\n      <p>Hola <strong>{{$json.body.clientName}}</strong>,</p>\n      \n      <div class=\"success\">\n        <h2>✅ Tu equipo está listo</h2>\n        <div class=\"price\">Costo Final: ${{$json.body.finalCost || $json.body.estimatedCost}}</div>\n      </div>\n      \n      <p><strong>📍 Retira tu equipo en:</strong></p>\n      <p>Nuestro Taller de Reparaciones<br>\n      Horario: Lun-Vie 9:00 AM - 6:00 PM</p>\n      \n      <p><strong>📋 Garantía:</strong> 90 días</p>\n      \n      <p>Gracias por confiar en nosotros. ¡Esperamos verte pronto!</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "credentials": {
+          "smtp": {
+            "id": "1",
+            "name": "Gmail SMTP"
+          }
+        }
+      },
+      "id": "email-ready",
+      "name": "Email: Ready",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [700, 750],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Status notification sent\", \"status\": $json.body.newStatus } }}"
+      },
+      "id": "response-success",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [950, 400]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Status: WAITING_APPROVAL",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Status: IN_REPAIR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Status: READY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: WAITING_APPROVAL": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: Budget Ready",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Budget Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: IN_REPAIR": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: READY": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp: Ready",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email: Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp: Budget Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Budget Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp: Approved": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp: Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "2",
+  "id": "repair-order-status-changed",
+  "meta": {
+    "instanceId": "n8n-repair-system"
+  },
+  "tags": []
+}

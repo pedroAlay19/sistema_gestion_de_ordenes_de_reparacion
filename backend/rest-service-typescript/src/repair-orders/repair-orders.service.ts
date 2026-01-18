@@ -25,6 +25,7 @@ import { UsersService } from '../users/users.service';
 import { EquipmentStatus } from '../equipments/entities/enums/equipment.enum';
 import { CreateRepairOrderDetailDto } from './dto/details/create-repair-order-detail.dto';
 import { CreateRepairOrderPartDto } from './dto/parts/create-repair-order-part.dto';
+import { WebhooksService } from '../webhooks/webhooks.service';
 
 @Injectable()
 export class RepairOrdersService {
@@ -41,6 +42,8 @@ export class RepairOrdersService {
     private readonly usersService: UsersService,
 
     private readonly dataSource: DataSource,
+
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   async create(createRepairOrderDto: CreateRepairOrderDto) {
@@ -58,7 +61,19 @@ export class RepairOrdersService {
       problemDescription: createRepairOrderDto.problemDescription,
       imageUrls: createRepairOrderDto.imageUrls || [],
     });
-    return await this.repairOrderRepository.save(order);
+    const savedOrder = await this.repairOrderRepository.save(order);
+
+    // Notificar a partners externos (cine) sobre la nueva orden
+    try {
+      await this.webhooksService.notifyPartnersOfEvent('order.created', {
+        status: 'created',
+      });
+    } catch (error) {
+      // Log error pero no fallar la creación de la orden
+      console.error('Error al enviar webhook:', error);
+    }
+
+    return savedOrder;
   }
 
   async findAllByRole(user: JwtPayload) {

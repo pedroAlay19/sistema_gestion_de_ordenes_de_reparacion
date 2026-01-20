@@ -1,0 +1,14 @@
+{"timestamp":"2026-01-20T20:50:13.344Z","type":"request","method":"tools/list","ip":"::1"}
+{"timestamp":"2026-01-20T20:50:13.348Z","type":"success","method":"tools/list","toolCount":4,"executionTimeMs":5}
+{"timestamp":"2026-01-20T20:50:16.131Z","type":"request","method":"tools/call","params":{"name":"search_equipment","arguments":{"query":"poco f3"}},"ip":"::1"}
+{"timestamp":"2026-01-20T20:50:17.744Z","type":"success","method":"tools/call","toolName":"search_equipment","args":{"query":"poco f3"},"executionTimeMs":1613}
+{"timestamp":"2026-01-20T20:52:08.145Z","type":"request","method":"tools/list","ip":"::1"}
+{"timestamp":"2026-01-20T20:52:08.148Z","type":"success","method":"tools/list","toolCount":4,"executionTimeMs":4}
+{"timestamp":"2026-01-20T20:52:11.928Z","type":"request","method":"tools/call","params":{"name":"search_equipment","arguments":{"query":"poco appl1"}},"ip":"::1"}
+{"timestamp":"2026-01-20T20:52:13.457Z","type":"success","method":"tools/call","toolName":"search_equipment","args":{"query":"poco appl1"},"executionTimeMs":1529}
+{"timestamp":"2026-01-20T20:52:28.486Z","type":"request","method":"tools/list","ip":"::1"}
+{"timestamp":"2026-01-20T20:52:28.488Z","type":"success","method":"tools/list","toolCount":4,"executionTimeMs":2}
+{"timestamp":"2026-01-20T20:52:31.342Z","type":"request","method":"tools/call","params":{"name":"search_equipment","arguments":{"query":"apple 1"}},"ip":"::1"}
+{"timestamp":"2026-01-20T20:52:33.119Z","type":"success","method":"tools/call","toolName":"search_equipment","args":{"query":"apple 1"},"executionTimeMs":1777}
+{"timestamp":"2026-01-20T20:52:37.658Z","type":"request","method":"tools/call","params":{"name":"create_repair_order","arguments":{"imageUrls":["https://generative-models.web.app/images/broken_phone.jpeg"],"problemDescription":"La pantalla está rota.","equipmentId":"87420ffb-52db-4f92-8ac3-3c2adfca91f2"}},"ip":"::1"}
+{"timestamp":"2026-01-20T20:52:41.369Z","type":"success","method":"tools/call","toolName":"create_repair_order","args":{"imageUrls":["https://generative-models.web.app/images/broken_phone.jpeg"],"problemDescription":"La pantalla está rota.","equipmentId":"87420ffb-52db-4f92-8ac3-3c2adfca91f2"},"executionTimeMs":3711}

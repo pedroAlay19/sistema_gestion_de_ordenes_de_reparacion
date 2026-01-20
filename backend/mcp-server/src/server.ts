@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { ToolRegistry } from './tools/registry';
+import { Logger } from './services/logger.service';
 import {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -40,9 +41,24 @@ app.get('/health', (req: Request, res: Response) => {
  */
 app.post('/mcp', async (req: Request, res: Response) => {
   const request: JsonRpcRequest = req.body;
+  const startTime = Date.now();
+  
+  // Log de entrada
+  Logger.log({
+    type: 'request',
+    method: request.method,
+    params: request.params,
+    ip: req.ip
+  });
   
   // Validar formato JSON-RPC
   if (request.jsonrpc !== '2.0' || !request.method) {
+    Logger.log({
+      type: 'error',
+      method: request.method || 'unknown',
+      error: 'Solicitud JSON-RPC inválida'
+    });
+    
     return res.json(
       createErrorResponse(
         request.id || null,
@@ -71,6 +87,13 @@ app.post('/mcp', async (req: Request, res: Response) => {
         // Listar todos los tools disponibles
         result = toolRegistry.getAllTools();
         console.log(`📋 Listando ${result.length} tools`);
+        
+        Logger.log({
+          type: 'success',
+          method: 'tools/list',
+          toolCount: result.length,
+          executionTimeMs: Date.now() - startTime
+        });
         break;
 
       case 'tools/call':
@@ -100,6 +123,14 @@ app.post('/mcp', async (req: Request, res: Response) => {
         console.log(`🔧 Ejecutando tool: ${name}`);
         result = await toolRegistry.executeTool(name, args || {});
         console.log(`✅ Tool ejecutado:`, result);
+        
+        Logger.log({
+          type: 'success',
+          method: 'tools/call',
+          toolName: name,
+          args: args,
+          executionTimeMs: Date.now() - startTime
+        });
         break;
 
       default:
@@ -119,6 +150,15 @@ app.post('/mcp', async (req: Request, res: Response) => {
 
   } catch (error: any) {
     console.error('❌ MCP Server Error:', error);
+    
+    Logger.log({
+      type: 'error',
+      method: request.method,
+      toolName: request.params?.name,
+      error: error.message,
+      executionTimeMs: Date.now() - startTime
+    });
+    
     res.json(
       createErrorResponse(
         request.id,

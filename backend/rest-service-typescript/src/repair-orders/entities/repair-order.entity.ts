@@ -21,7 +21,7 @@ export class RepairOrder {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => Equipment, (equipment) => equipment.repairOrders)
+  @ManyToOne(() => Equipment, (equipment) => equipment.repairOrders, { onDelete: 'CASCADE' })
   equipment: Equipment;
 
   @ManyToOne(() => Technician)

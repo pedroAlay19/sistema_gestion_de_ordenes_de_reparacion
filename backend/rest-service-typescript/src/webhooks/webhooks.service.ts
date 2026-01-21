@@ -1,12 +1,10 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
-import { plainToInstance } from 'class-transformer';
-import { validate } from 'class-validator';
 import { HmacService } from './security/hmac.service';
 import { PartnerService } from './partner.service';
 import { WebhookEventDto } from './dto/webhook-event.dto';
-import { PromotionWebhookDto } from './dto/promotion-webhook.dto';
+import { WebhookEventHandler } from './handlers/webhook-event.handler';
 
 @Injectable()
 export class WebhooksService {
@@ -16,6 +14,9 @@ export class WebhooksService {
     private readonly httpService: HttpService,
     private readonly hmacService: HmacService,
     private readonly partnerService: PartnerService,
+
+    @Inject('WEBHOOK_HANDLERS')
+    private readonly handlers: WebhookEventHandler[],
   ) {}
 
   /**
@@ -68,7 +69,7 @@ export class WebhooksService {
   }
 
   /**
-   * Método genérico para enviar webhooks a partners
+   * Método  para enviar webhooks a partners
    */
   async sendWebhookToPartner(
     url: string,
@@ -76,8 +77,8 @@ export class WebhooksService {
     payload: WebhookEventDto,
   ): Promise<void> {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const payloadJson = JSON.stringify(payload);
-    const rawBody = Buffer.from(payloadJson, 'utf8');
+    //const payloadJson = JSON.stringify(payload);
+    const rawBody = Buffer.from(JSON.stringify(payload), 'utf8');
 
     // Generar firma HMAC
     const signature = this.hmacService.sign(secret, timestamp, rawBody);
@@ -111,43 +112,23 @@ export class WebhooksService {
   async processIncomingWebhook(payload: WebhookEventDto): Promise<any> {
     const { event, data } = payload;
 
-    this.logger.log(`Procesando webhook: ${event}`);
+    
 
-    switch (event) {
-      case 'promotion.created':
-        const promotionData = plainToInstance(PromotionWebhookDto, data);
-        const errors = await validate(promotionData);
-        
-        if (errors.length > 0) {
-          this.logger.error('Error de validación en promotion.created', errors);
-          throw new BadRequestException('Invalid promotion data');
-        }
-        
-        return await this.handlePromotionCreated(promotionData);
+    const handler = this.handlers.find(h => h.supports(event));
 
-      case 'order.updated':
-        return await this.handleOrderUpdated(data);
-
-      // Eventos de pago del cine
-      case 'payment.completed':
-      case 'payment.pending':
-      case 'payment.failed':
-        this.logger.log(`Evento de pago recibido: ${event}`);
-        // Los eventos de pago se procesan en el PaymentService
-        return { 
-          status: 'received', 
-          message: 'Payment event will be processed by payment service'
-        };
-
-      default:
-        this.logger.warn(`Evento no manejado: ${event}`);
-        return { status: 'received', message: 'Event type not handled' };
+    if (!handler) {
+      this.logger.warn(`Evento no manejado: ${event}`);
+      return {
+        status: 'received',
+        message:'Tipo de evento no manejado',
+      };
     }
+    return handler.handle(data);
   }
 
   /**
    * Maneja el evento de promoción creada por el cine
-   */
+   
   private async handlePromotionCreated(
     data: PromotionWebhookDto,
   ): Promise<any> {
@@ -166,11 +147,11 @@ export class WebhooksService {
       promotion_id: data.promotion_id,
       message: 'Promotion received and will be notified to user',
     };
-  }
+  }*/
 
   /**
    * Maneja actualizaciones de órdenes
-   */
+   
   private async handleOrderUpdated(data: any): Promise<any> {
     this.logger.log(`Orden actualizada: ${data.order_id}`);
 
@@ -179,4 +160,5 @@ export class WebhooksService {
       message: 'Order update received',
     };
   }
+    */
 }

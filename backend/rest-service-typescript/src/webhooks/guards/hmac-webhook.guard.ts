@@ -8,10 +8,6 @@ import {
 import { HmacService } from '../security/hmac.service';
 import { PartnerService } from '../partner.service';
 
-interface RequestWithRawBody extends Request {
-  rawBody?: Buffer;
-}
-
 @Injectable()
 export class HmacWebhookGuard implements CanActivate {
   constructor(
@@ -20,67 +16,44 @@ export class HmacWebhookGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<RequestWithRawBody>();
+    const request = context.switchToHttp().getRequest<any>();
 
-    // Obtener headers necesarios
+    // Headers requeridos
     const signature = request.headers['x-webhook-signature'] as string;
-    const timestamp = request.headers['x-webhook-timestamp'] as string;
     const partnerId = request.headers['x-partner-id'] as string;
 
     if (!signature) {
       throw new BadRequestException('Missing x-webhook-signature header');
     }
 
-    // Comentado temporalmente - validación de timestamp
-    // if (!timestamp) {
-    //   throw new BadRequestException('Missing x-webhook-timestamp header');
-    // }
-
     if (!partnerId) {
       throw new BadRequestException('Missing x-partner-id header');
     }
 
-    // Buscar el partner en la base de datos
-    let partner;
-    try {
-      partner = await this.partnerService.findOne(partnerId);
-    } catch (error) {
-      throw new UnauthorizedException('Partner not found or inactive');
-    }
-
+    // Buscar partner
+    const partner = await this.partnerService.findOne(partnerId);
     if (!partner || !partner.is_active) {
       throw new UnauthorizedException('Partner not found or inactive');
     }
 
     const secret = partner.secret;
 
-    // Comentado temporalmente - validación de timestamp
-    // // Verificar que el timestamp no sea muy antiguo (5 minutos)
-    // const now = Math.floor(Date.now() / 1000);
-    // const requestTime = parseInt(timestamp, 10);
-
-    // if (isNaN(requestTime)) {
-    //   throw new BadRequestException('Invalid timestamp format');
-    // }
-
-    // if (Math.abs(now - requestTime) > 300) {
-    //   throw new UnauthorizedException(
-    //     'Request timestamp too old or too far in the future',
-    //   );
-    // }
-
-    // Obtener el raw body
-    const rawBody = request.rawBody || Buffer.from(JSON.stringify(request.body));
+    /**
+     * 🔴 CLAVE:
+     * Normalizamos el body EXACTAMENTE igual que Postman
+     */
+    const normalizedBody = JSON.stringify(request.body);
+    const rawBody = Buffer.from(normalizedBody);
 
     try {
-      // Verificar la firma HMAC (sin timestamp por ahora)
-      this.hmacService.verifyOrThrow(secret, timestamp || '', rawBody, signature);
-      
-      // Agregar info del partner al request para uso posterior
-      request['partner'] = partner;
-      
+      // Validar firma SIN timestamp
+      this.hmacService.verifyOrThrow(secret, '', rawBody, signature);
+
+      // Adjuntar partner al request
+      request.partner = partner;
+
       return true;
-    } catch (error) {
+    } catch {
       throw new UnauthorizedException('Invalid webhook signature');
     }
   }

@@ -9,6 +9,8 @@ import { HmacWebhookGuard } from './guards/hmac-webhook.guard';
 import { PartnerController } from './partner.controller';
 import { PartnerService } from './partner.service';
 import { Partner } from './entities/partner.entity';
+import { PromotionCreatedHandler } from './handlers/promotion-created.handler';
+import { OrderUpdatedHandler } from './handlers/order-updated.handler';
 
 @Module({
   imports: [
@@ -20,7 +22,14 @@ import { Partner } from './entities/partner.entity';
     TypeOrmModule.forFeature([Partner]),
   ],
   controllers: [WebhooksController, PartnerController],
-  providers: [WebhooksService, HmacService, HmacWebhookGuard, PartnerService],
+  providers: [WebhooksService, HmacService, HmacWebhookGuard, PartnerService,PromotionCreatedHandler,OrderUpdatedHandler,{
+    provide: 'WEBHOOK_HANDLERS',
+    useFactory: (
+      promotion: PromotionCreatedHandler,
+      order: OrderUpdatedHandler,
+    ) => [promotion, order],
+    inject: [PromotionCreatedHandler, OrderUpdatedHandler],
+  }],
   exports: [WebhooksService, PartnerService],
 })
 export class WebhooksModule {}

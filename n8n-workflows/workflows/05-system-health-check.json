@@ -12,11 +12,14 @@
           ]
         }
       },
-      "id": "cron-every-30min",
+      "id": "955076c9-8883-4934-858b-60df531be04a",
       "name": "Schedule: Every 30 Minutes",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [250, 300]
+      "position": [
+        -800,
+        160
+      ]
     },
     {
       "parameters": {
@@ -27,40 +30,54 @@
           "timeout": 5000
         }
       },
-      "id": "check-rest-api",
+      "id": "d75c1dc9-6c53-44e0-a4b9-3a5810b46643",
       "name": "Check REST API",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.1,
-      "position": [450, 200],
+      "position": [
+        -608,
+        64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aC4LEMm3BhCRFHwB",
+          "name": "REST API Header Auth"
+        }
+      },
       "continueOnFail": true
     },
     {
       "parameters": {
-        "operation": "executeCommand",
-        "command": "PING"
+        "operation": "executeCommand"
       },
-      "id": "check-redis",
+      "id": "f40d93e5-2705-4f32-a47d-97d28ca6b87f",
       "name": "Check Redis",
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
-      "position": [450, 350],
-      "continueOnFail": true,
+      "position": [
+        -608,
+        208
+      ],
       "credentials": {
         "redis": {
-          "id": "3",
+          "id": "fOPUVGHtC4ehynSj",
           "name": "Redis"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "jsCode": "// Verificar el estado de todos los servicios\nconst restApiItem = $input.item(0);\nconst redisItem = $input.item(1);\n\nconst now = new Date();\nconst timestamp = now.toLocaleString('es-EC', {\n  timeZone: 'America/Guayaquil',\n  dateStyle: 'medium',\n  timeStyle: 'short'\n});\n\n// Verificar REST API\nconst restApiStatus = {\n  healthy: !restApiItem.error && restApiItem.json !== undefined,\n  error: restApiItem.error ? restApiItem.error.message : null,\n  responseTime: restApiItem.json ? 'OK' : 'FAILED'\n};\n\n// Verificar Redis\nconst redisStatus = {\n  healthy: !redisItem.error && redisItem.json === 'PONG',\n  error: redisItem.error ? redisItem.error.message : null,\n  response: redisItem.json || 'NO RESPONSE'\n};\n\n// Determinar estado general\nconst allHealthy = restApiStatus.healthy && redisStatus.healthy;\nconst criticalFailure = !restApiStatus.healthy; // REST API es crítico\n\n// Construir mensaje de estado\nlet statusMessage = '';\nif (allHealthy) {\n  statusMessage = '✅ Todos los servicios operando normalmente';\n} else if (criticalFailure) {\n  statusMessage = '🚨 FALLO CRÍTICO: REST API no responde';\n} else {\n  statusMessage = '⚠️ Algunos servicios presentan problemas';\n}\n\n// Detalles de servicios\nlet servicesDetail = '';\nservicesDetail += `🔧 REST API: ${restApiStatus.healthy ? '✅ OK' : '❌ FAILED'}\\n`;\nif (!restApiStatus.healthy && restApiStatus.error) {\n  servicesDetail += `   Error: ${restApiStatus.error}\\n`;\n}\n\nservicesDetail += `💾 Redis: ${redisStatus.healthy ? '✅ OK' : '⚠️ WARNING'}\\n`;\nif (!redisStatus.healthy && redisStatus.error) {\n  servicesDetail += `   Error: ${redisStatus.error}\\n`;\n}\n\nreturn [{\n  json: {\n    timestamp,\n    allHealthy,\n    criticalFailure,\n    statusMessage,\n    servicesDetail: servicesDetail.trim(),\n    restApi: restApiStatus,\n    redis: redisStatus,\n    adminPhone: 'whatsapp:+593979154106',\n    adminEmail: 'alanjoel311@gmail.com'\n  }\n}];"
+        "jsCode": "const items = $input.all();\n\n// Helpers seguros\nfunction safeItem(index) {\n  return items[index] ?? null;\n}\n\nfunction getError(item) {\n  return item?.error?.message ?? null;\n}\n\nfunction getJson(item) {\n  return item?.json ?? null;\n}\n\n// Intentar obtener items\nconst restApiItem = safeItem(0);\nconst redisItem = safeItem(1);\n\nconst now = new Date();\nconst timestamp = now.toLocaleString('es-EC', {\n  timeZone: 'America/Guayaquil',\n  dateStyle: 'medium',\n  timeStyle: 'short'\n});\n\n// REST API\nconst restApiStatus = {\n  healthy: !!getJson(restApiItem),\n  error: getError(restApiItem),\n  response: getJson(restApiItem) ? 'OK' : 'NO RESPONSE'\n};\n\n// Redis\nconst redisStatus = {\n  healthy: getJson(redisItem) === 'PONG',\n  error: getError(redisItem),\n  response: getJson(redisItem) ?? 'NO RESPONSE'\n};\n\n// Estado general\nconst allHealthy = restApiStatus.healthy && redisStatus.healthy;\nconst criticalFailure = !restApiStatus.healthy;\n\n// Mensaje\nlet statusMessage;\nif (allHealthy) {\n  statusMessage = '✅ Todos los servicios operando normalmente';\n} else if (criticalFailure) {\n  statusMessage = '🚨 FALLO CRÍTICO: REST API no responde';\n} else {\n  statusMessage = '⚠️ Algunos servicios presentan problemas';\n}\n\n// Detalles\nlet servicesDetail = '';\nservicesDetail += `🔧 REST API: ${restApiStatus.healthy ? '✅ OK' : '❌ FAILED'}\\n`;\nif (restApiStatus.error) {\n  servicesDetail += `   Error: ${restApiStatus.error}\\n`;\n}\n\nservicesDetail += `💾 Redis: ${redisStatus.healthy ? '✅ OK' : '⚠️ WARNING'}\\n`;\nif (redisStatus.error) {\n  servicesDetail += `   Error: ${redisStatus.error}\\n`;\n}\n\nreturn [{\n  json: {\n    timestamp,\n    allHealthy,\n    criticalFailure,\n    statusMessage,\n    servicesDetail: servicesDetail.trim(),\n    debug: {\n      receivedItems: items.length\n    }\n  }\n}];\n"
       },
-      "id": "analyze-health",
+      "id": "cdd1749a-c426-442a-9988-3efe96f5f45e",
       "name": "Analyze Health Status",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [650, 275]
+      "position": [
+        -400,
+        128
+      ]
     },
     {
       "parameters": {
@@ -73,58 +90,34 @@
           ]
         }
       },
-      "id": "has-critical-failure",
+      "id": "36aba112-3e38-492a-9f1a-523f1b66fed6",
       "name": "Critical Failure?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [850, 275]
-    },
-    {
-      "parameters": {
-        "fromNumber": "whatsapp:+17609356606",
-        "toNumber": "={{$json.adminPhone}}",
-        "message": "🚨 *ALERTA DEL SISTEMA*\n\n⏰ {{$json.timestamp}}\n\n{{$json.statusMessage}}\n\n━━━━━━━━━━━━━━━━━━━━━\n📊 *ESTADO DE SERVICIOS*\n━━━━━━━━━━━━━━━━━━━━━\n\n{{$json.servicesDetail}}\n\n━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ *ACCIÓN REQUERIDA*\nPor favor verifica los servicios inmediatamente.\n\n🔗 n8n: http://localhost:5678\n🔗 Backend: http://localhost:3000",
-        "credentials": {
-          "twilioApi": {
-            "id": "2",
-            "name": "Twilio WhatsApp"
-          }
-        }
-      },
-      "id": "alert-critical",
-      "name": "Alert: Critical Failure",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [1050, 150],
-      "credentials": {
-        "twilioApi": {
-          "id": "2",
-          "name": "Twilio WhatsApp"
-        }
-      }
+      "position": [
+        -208,
+        128
+      ]
     },
     {
       "parameters": {
         "fromEmail": "alanjoel311@gmail.com",
         "toEmail": "={{$json.adminEmail}}",
         "subject": "🚨 ALERTA CRÍTICA: Fallo en el Sistema",
-        "emailType": "html",
-        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: #dc2626; color: white; padding: 25px; border-radius: 8px 8px 0 0; }\n    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }\n    .alert-box { background: #fee2e2; border-left: 4px solid #dc2626; padding: 20px; margin: 20px 0; border-radius: 4px; }\n    .service-status { background: white; padding: 15px; margin: 10px 0; border-radius: 6px; }\n    .status-ok { color: #10b981; font-weight: bold; }\n    .status-fail { color: #dc2626; font-weight: bold; }\n    .action-box { background: #fef3c7; padding: 20px; border-radius: 6px; margin: 20px 0; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1 style=\"margin: 0;\">🚨 ALERTA CRÍTICA DEL SISTEMA</h1>\n      <p style=\"margin: 10px 0 0 0; font-size: 14px;\">{{$json.timestamp}}</p>\n    </div>\n    <div class=\"content\">\n      \n      <div class=\"alert-box\">\n        <h2 style=\"margin-top: 0; color: #dc2626;\">{{$json.statusMessage}}</h2>\n        <p>Se ha detectado un fallo crítico en el sistema que requiere atención inmediata.</p>\n      </div>\n      \n      <h3>📊 Estado de Servicios</h3>\n      \n      <div class=\"service-status\">\n        <strong>🔧 REST API:</strong> \n        <span class=\"{{ $json.restApi.healthy ? 'status-ok' : 'status-fail' }}\">\n          {{ $json.restApi.healthy ? '✅ OPERATIVO' : '❌ CAÍDO' }}\n        </span>\n        {{ $json.restApi.error ? '<br><small style=\"color: #6b7280;\">Error: ' + $json.restApi.error + '</small>' : '' }}\n      </div>\n      \n      <div class=\"service-status\">\n        <strong>💾 Redis:</strong> \n        <span class=\"{{ $json.redis.healthy ? 'status-ok' : 'status-fail' }}\">\n          {{ $json.redis.healthy ? '✅ OPERATIVO' : '⚠️ PROBLEMA' }}\n        </span>\n        {{ $json.redis.error ? '<br><small style=\"color: #6b7280;\">Error: ' + $json.redis.error + '</small>' : '' }}\n      </div>\n      \n      <div class=\"action-box\">\n        <h3 style=\"margin-top: 0;\">⚡ Acciones Recomendadas</h3>\n        <ol>\n          <li>Verifica que todos los servicios Docker estén corriendo</li>\n          <li>Revisa los logs del contenedor afectado</li>\n          <li>Verifica la conectividad de red</li>\n          <li>Reinicia los servicios si es necesario</li>\n        </ol>\n        \n        <p><strong>🔗 Enlaces Útiles:</strong></p>\n        <ul style=\"list-style: none; padding: 0;\">\n          <li>📊 n8n Dashboard: <a href=\"http://localhost:5678\">http://localhost:5678</a></li>\n          <li>🔧 REST API: <a href=\"http://localhost:3000\">http://localhost:3000</a></li>\n        </ul>\n      </div>\n      \n      <p style=\"color: #6b7280; font-size: 13px; margin-top: 30px;\">\n        Este es un mensaje automático del sistema de monitoreo. El health check se ejecuta cada 30 minutos.\n      </p>\n      \n    </div>\n  </div>\n</body>\n</html>",
-        "credentials": {
-          "smtp": {
-            "id": "1",
-            "name": "Gmail SMTP"
-          }
-        }
+        "options": {}
       },
-      "id": "email-critical",
+      "id": "35bb87d0-8e07-48fa-9779-7cabb0dd1447",
       "name": "Email: Critical Failure",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2,
-      "position": [1050, 300],
+      "position": [
+        0,
+        160
+      ],
+      "webhookId": "5c4f0022-7c17-454b-b4d8-352ae38d5bdf",
       "credentials": {
         "smtp": {
-          "id": "1",
+          "id": "3r7eRzYQtc8Pn9aS",
           "name": "Gmail SMTP"
         }
       }
@@ -134,47 +127,69 @@
         "conditions": {
           "boolean": [
             {
-              "value1": "={{$json.allHealthy}}",
-              "value2": false
+              "value1": "={{$json.allHealthy}}"
             },
             {
-              "value1": "={{$json.criticalFailure}}",
-              "value2": false
+              "value1": "={{$json.criticalFailure}}"
             }
           ]
         }
       },
-      "id": "has-warnings",
+      "id": "c3ee2bdd-4586-432f-8d2c-d3b89c09f8f0",
       "name": "Has Warnings?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1050, 450]
+      "position": [
+        0,
+        304
+      ]
     },
     {
       "parameters": {
-        "fromNumber": "whatsapp:+17609356606",
-        "toNumber": "={{$json.adminPhone}}",
-        "message": "⚠️ *Advertencia del Sistema*\n\n⏰ {{$json.timestamp}}\n\n{{$json.servicesDetail}}\n\nAlgunos servicios presentan problemas menores. Considera revisar los logs.",
-        "credentials": {
-          "twilioApi": {
-            "id": "2",
-            "name": "Twilio WhatsApp"
-          }
-        }
+        "chatId": "7393139459",
+        "text": "=⚠️ *Advertencia del Sistema*  \n\n⏰ {{$json.timestamp}}  {{$json.servicesDetail}}  \n\nAlgunos servicios presentan problemas menores. Considera revisar los logs.",
+        "additionalFields": {}
       },
-      "id": "alert-warning",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        288
+      ],
+      "id": "867da77c-ab1f-477a-90bc-3ac819ef82e9",
       "name": "Alert: Warning",
-      "type": "n8n-nodes-base.twilio",
-      "typeVersion": 1,
-      "position": [1250, 450],
+      "webhookId": "47c0471c-9dd6-4615-925d-5b12b9f0cc58",
       "credentials": {
-        "twilioApi": {
-          "id": "2",
-          "name": "Twilio WhatsApp"
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=🚨 *ALERTA DEL SISTEMA*\n\n⏰ {{$json.timestamp}}\n\n{{$json.statusMessage}}\n\n━━━━━━━━━━━━━━━━━━━━━\n📊 *ESTADO DE SERVICIOS*\n━━━━━━━━━━━━━━━━━━━━━\n\n{{$json.servicesDetail}}\n\n━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ *ACCIÓN REQUERIDA*\nPor favor verifica los servicios inmediatamente.\n\n🔗 n8n: http://localhost:5678\n🔗 Backend: http://localhost:3000",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        16
+      ],
+      "id": "7cd1f05f-452c-4854-b908-7d6fd1c31b17",
+      "name": "Alert: Critical Failure",
+      "webhookId": "6147c7a3-e343-4b8a-900c-812337b2fc69",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
         }
       }
     }
   ],
+  "pinData": {},
   "connections": {
     "Schedule: Every 30 Minutes": {
       "main": [
@@ -229,12 +244,12 @@
       "main": [
         [
           {
-            "node": "Alert: Critical Failure",
+            "node": "Email: Critical Failure",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Email: Critical Failure",
+            "node": "Alert: Critical Failure",
             "type": "main",
             "index": 0
           }
@@ -263,13 +278,13 @@
   "active": true,
   "settings": {
     "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "callerPolicy": "workflowsFromSameOwner"
+    "availableInMCP": false
   },
-  "versionId": "5",
-  "id": "system-health-check",
+  "versionId": "c76e6633-08f9-4b04-b360-5ee949c5744d",
   "meta": {
-    "instanceId": "n8n-repair-system"
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f68891e84c594fce25492efee91afe17e01f2a1b969fe1fd129506a3fbaec716"
   },
+  "id": "4_bwiHu00kAulu1SGRVRh",
   "tags": []
 }

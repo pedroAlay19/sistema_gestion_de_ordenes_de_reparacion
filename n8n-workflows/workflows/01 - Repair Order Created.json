@@ -1,0 +1,193 @@
+{
+  "name": "01 - Repair Order Created",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "repair-order-created",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "cb49914a-98b3-45ed-ab00-86e1d675279d",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        112
+      ],
+      "webhookId": "repair-order-created"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.orderId}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "8e50097b-00b5-4c0a-9021-87d9b6b90bbc",
+      "name": "Validate Payload",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.clientEmail}}",
+        "subject": "🔧 Orden de Reparación Recibida - #{{$json.body.orderId.slice(0,8)}}",
+        "text": "=Se ha registrado una nueva orden de reparación en el sistema.\n\n━━━━━━━━━━━━━━━━━━━━━━\nDETALLES DE LA ORDEN\n━━━━━━━━━━━━━━━━━━━━━━\n\nOrden: #{{$json.body.orderId.slice(0,8)}}\nEquipo: {{$json.body.equipment.type}}\nCliente: {{$json.body.clientName}}\n\nProblema reportado:\n{{$json.body.problemDescription}}\n\nFecha de recepción:\n{{$json.body.createdAt}}\n\n━━━━━━━━━━━━━━━━━━━━━━\nPor favor, revisa y evalúa esta orden lo antes posible para continuar con el proceso.\n\nEste mensaje fue generado automáticamente por el Sistema de Gestión de Reparaciones.\n",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "0bf8fb6f-eb2e-4863-bbc8-8fd3d3247c30",
+      "name": "Send Email to Client",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "05879e95-c382-4bc3-8c72-da44c7f0259a",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Notifications sent\", \"orderId\": $json.body.orderId } }}",
+        "options": {}
+      },
+      "id": "099f5c7b-3096-4012-8a8b-cb2aac7ef041",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        208,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"Invalid payload\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "b8d194e3-2967-4cf2-acd0-8f2a9fdc8e49",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        336
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=Se ha registrado una nueva orden de reparación en el sistema.\n\n━━━━━━━━━━━━━━━━━━━━━━\nDETALLES DE LA ORDEN\n━━━━━━━━━━━━━━━━━━━━━━\n\nOrden: #{{$json.body.orderId.slice(0,8)}}\nEquipo: {{$json.body.equipment.type}}\nCliente: {{$json.body.clientName}}\n\nProblema reportado:\n{{$json.body.problemDescription}}\n\nFecha de recepción:\n{{$json.body.createdAt}}\n\n━━━━━━━━━━━━━━━━━━━━━━\nPor favor, revisa y evalúa esta orden lo antes posible para continuar con el proceso.\n\nEste mensaje fue generado automáticamente por el Sistema de Gestión de Reparaciones.\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ],
+      "id": "ff8e2518-5627-418e-a748-4555f22f2433",
+      "name": "Send Telegram to Technician",
+      "webhookId": "48a842c5-f61e-400b-a337-ee6a4c86ca12",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Payload": {
+      "main": [
+        [
+          {
+            "node": "Send Email to Client",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Telegram to Technician",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email to Client": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram to Technician": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c58971c5-45a0-4e69-9439-f48f831e3cba",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f68891e84c594fce25492efee91afe17e01f2a1b969fe1fd129506a3fbaec716"
+  },
+  "id": "e_2VHme7JcqwpedRq5OHj",
+  "tags": []
+}

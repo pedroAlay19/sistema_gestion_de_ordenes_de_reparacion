@@ -1,0 +1,290 @@
+{
+  "name": "05 - System Health Check",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "955076c9-8883-4934-858b-60df531be04a",
+      "name": "Schedule: Every 30 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/stats/overview",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "d75c1dc9-6c53-44e0-a4b9-3a5810b46643",
+      "name": "Check REST API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -608,
+        64
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aC4LEMm3BhCRFHwB",
+          "name": "REST API Header Auth"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "operation": "executeCommand"
+      },
+      "id": "f40d93e5-2705-4f32-a47d-97d28ca6b87f",
+      "name": "Check Redis",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        208
+      ],
+      "credentials": {
+        "redis": {
+          "id": "fOPUVGHtC4ehynSj",
+          "name": "Redis"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\n// Helpers seguros\nfunction safeItem(index) {\n  return items[index] ?? null;\n}\n\nfunction getError(item) {\n  return item?.error?.message ?? null;\n}\n\nfunction getJson(item) {\n  return item?.json ?? null;\n}\n\n// Intentar obtener items\nconst restApiItem = safeItem(0);\nconst redisItem = safeItem(1);\n\nconst now = new Date();\nconst timestamp = now.toLocaleString('es-EC', {\n  timeZone: 'America/Guayaquil',\n  dateStyle: 'medium',\n  timeStyle: 'short'\n});\n\n// REST API\nconst restApiStatus = {\n  healthy: !!getJson(restApiItem),\n  error: getError(restApiItem),\n  response: getJson(restApiItem) ? 'OK' : 'NO RESPONSE'\n};\n\n// Redis\nconst redisStatus = {\n  healthy: getJson(redisItem) === 'PONG',\n  error: getError(redisItem),\n  response: getJson(redisItem) ?? 'NO RESPONSE'\n};\n\n// Estado general\nconst allHealthy = restApiStatus.healthy && redisStatus.healthy;\nconst criticalFailure = !restApiStatus.healthy;\n\n// Mensaje\nlet statusMessage;\nif (allHealthy) {\n  statusMessage = '✅ Todos los servicios operando normalmente';\n} else if (criticalFailure) {\n  statusMessage = '🚨 FALLO CRÍTICO: REST API no responde';\n} else {\n  statusMessage = '⚠️ Algunos servicios presentan problemas';\n}\n\n// Detalles\nlet servicesDetail = '';\nservicesDetail += `🔧 REST API: ${restApiStatus.healthy ? '✅ OK' : '❌ FAILED'}\\n`;\nif (restApiStatus.error) {\n  servicesDetail += `   Error: ${restApiStatus.error}\\n`;\n}\n\nservicesDetail += `💾 Redis: ${redisStatus.healthy ? '✅ OK' : '⚠️ WARNING'}\\n`;\nif (redisStatus.error) {\n  servicesDetail += `   Error: ${redisStatus.error}\\n`;\n}\n\nreturn [{\n  json: {\n    timestamp,\n    allHealthy,\n    criticalFailure,\n    statusMessage,\n    servicesDetail: servicesDetail.trim(),\n    debug: {\n      receivedItems: items.length\n    }\n  }\n}];\n"
+      },
+      "id": "cdd1749a-c426-442a-9988-3efe96f5f45e",
+      "name": "Analyze Health Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.criticalFailure}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "36aba112-3e38-492a-9f1a-523f1b66fed6",
+      "name": "Critical Failure?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.adminEmail}}",
+        "subject": "🚨 ALERTA CRÍTICA: Fallo en el Sistema",
+        "options": {}
+      },
+      "id": "35bb87d0-8e07-48fa-9779-7cabb0dd1447",
+      "name": "Email: Critical Failure",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        0,
+        160
+      ],
+      "webhookId": "5c4f0022-7c17-454b-b4d8-352ae38d5bdf",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.allHealthy}}"
+            },
+            {
+              "value1": "={{$json.criticalFailure}}"
+            }
+          ]
+        }
+      },
+      "id": "c3ee2bdd-4586-432f-8d2c-d3b89c09f8f0",
+      "name": "Has Warnings?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=⚠️ *Advertencia del Sistema*  \n\n⏰ {{$json.timestamp}}  {{$json.servicesDetail}}  \n\nAlgunos servicios presentan problemas menores. Considera revisar los logs.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        288
+      ],
+      "id": "867da77c-ab1f-477a-90bc-3ac819ef82e9",
+      "name": "Alert: Warning",
+      "webhookId": "47c0471c-9dd6-4615-925d-5b12b9f0cc58",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=🚨 *ALERTA DEL SISTEMA*\n\n⏰ {{$json.timestamp}}\n\n{{$json.statusMessage}}\n\n━━━━━━━━━━━━━━━━━━━━━\n📊 *ESTADO DE SERVICIOS*\n━━━━━━━━━━━━━━━━━━━━━\n\n{{$json.servicesDetail}}\n\n━━━━━━━━━━━━━━━━━━━━━\n\n⚠️ *ACCIÓN REQUERIDA*\nPor favor verifica los servicios inmediatamente.\n\n🔗 n8n: http://localhost:5678\n🔗 Backend: http://localhost:3000",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        16
+      ],
+      "id": "7cd1f05f-452c-4854-b908-7d6fd1c31b17",
+      "name": "Alert: Critical Failure",
+      "webhookId": "6147c7a3-e343-4b8a-900c-812337b2fc69",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule: Every 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Check REST API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check REST API": {
+      "main": [
+        [
+          {
+            "node": "Analyze Health Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Redis": {
+      "main": [
+        [
+          {
+            "node": "Analyze Health Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Health Status": {
+      "main": [
+        [
+          {
+            "node": "Critical Failure?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Failure?": {
+      "main": [
+        [
+          {
+            "node": "Email: Critical Failure",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alert: Critical Failure",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Warnings?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Warnings?": {
+      "main": [
+        [
+          {
+            "node": "Alert: Warning",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "c76e6633-08f9-4b04-b360-5ee949c5744d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f68891e84c594fce25492efee91afe17e01f2a1b969fe1fd129506a3fbaec716"
+  },
+  "id": "4_bwiHu00kAulu1SGRVRh",
+  "tags": []
+}

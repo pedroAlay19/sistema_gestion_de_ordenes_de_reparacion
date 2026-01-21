@@ -10,6 +10,7 @@ import { RepairOrder } from '../entities/repair-order.entity';
 import { MaintenanceServicesService } from 'src/maintenance-services/maintenance-services.service';
 import { UsersService } from 'src/users/users.service';
 import { CreateRepairOrderDetailDto } from '../dto/details/create-repair-order-detail.dto';
+import { N8nService } from 'src/n8n-integration/n8n.service';
 import {
   TicketServiceStatus,
   OrderRepairStatus,
@@ -27,33 +28,54 @@ export class RepairOrderDetailsService {
     private readonly maintenanceServicesService: MaintenanceServicesService,
 
     private readonly usersService: UsersService,
+
+    private readonly n8nService: N8nService,
   ) {}
 
   async createMany(
-    dtos: CreateRepairOrderDetailDto[],
-    repairOrder: RepairOrder,
-  ): Promise<RepairOrderDetail[]> {
-    const details: RepairOrderDetail[] = [];
+  dtos: CreateRepairOrderDetailDto[],
+  repairOrder: RepairOrder,
+): Promise<RepairOrderDetail[]> {
+  const details: RepairOrderDetail[] = [];
 
-    for (const dto of dtos) {
-      const service = await this.maintenanceServicesService.findOne(
-        dto.serviceId,
-      );
-      const technician = await this.usersService.findOne(dto.technicianId);
+  for (const dto of dtos) {
+    const service = await this.maintenanceServicesService.findOne(
+      dto.serviceId,
+    );
+    const technician = await this.usersService.findOne(dto.technicianId);
 
-      const detail = this.repairOrderDetailRepository.create({
-        repairOrder,
-        service,
-        technician,
-        repairPrice: service.basePrice,
-        notes: dto?.notes,
-      });
+    const detail = this.repairOrderDetailRepository.create({
+      repairOrder,
+      service,
+      technician,
+      repairPrice: service.basePrice,
+      notes: dto?.notes,
+    });
 
-      const saved = await this.repairOrderDetailRepository.save(detail);
-      details.push(saved);
-    }
-    return details;
+    const saved = await this.repairOrderDetailRepository.save(detail);
+    details.push(saved);
+
+    // DISPARAR EVENTO DE TAREA ASIGNADA
+    await this.n8nService.notifyTechnicianTaskAssigned({
+      detailId: saved.id,
+      orderId: repairOrder.id,
+      serviceName: service.serviceName,
+      serviceDescription: service.description,
+      repairPrice: Number(service.basePrice),
+      technicianName: `${technician.name} ${technician.lastName}`,
+      technicianPhone: technician.phone,
+      technicianEmail: technician.email,
+      equipmentType: repairOrder.equipment?.type || 'N/A',
+      clientName: repairOrder.equipment?.user
+        ? `${repairOrder.equipment.user.name} ${repairOrder.equipment.user.lastName}`
+        : 'N/A',
+      priority: 'medium', // Puedes agregar lógica para determinar prioridad
+      notes: dto.notes,
+      assignedAt: new Date().toISOString(),
+    });
   }
+  return details;
+}
 
   async findByTechnician(technicianId: string): Promise<RepairOrderDetail[]> {
     return await this.repairOrderDetailRepository.find({

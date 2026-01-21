@@ -1,0 +1,159 @@
+{
+  "name": "04 - Daily Summary Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "5467342a-6d29-4f37-8acf-cb1e83c5c767",
+      "name": "Schedule: Every Day 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/stats/overview",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "34b7bc1a-3b10-4ce1-b9cc-3478d32acc9a",
+      "name": "Get Orders Overview",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        112
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aC4LEMm3BhCRFHwB",
+          "name": "REST API Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const overview = $input.all()[0]?.json ?? {};\nconst revenue = $input.all()[1]?.json ?? {};\nconst byStatus = $input.all()[2]?.json ?? {};\n\nconst today = new Date();\nconst dateStr = today.toLocaleDateString('es-EC', { \n  weekday: 'long',\n  year: 'numeric',\n  month: 'long',\n  day: 'numeric',\n  timeZone: 'America/Guayaquil'\n});\n\n// Porcentajes\nconst completionRate = overview.totalOrders\n  ? ((overview.completedOrders / overview.totalOrders) * 100).toFixed(1)\n  : '0';\n\nconst activeRate = overview.totalOrders\n  ? ((overview.activeOrders / overview.totalOrders) * 100).toFixed(1)\n  : '0';\n\n// Estados\nlet statusBreakdown = '';\n\nif (Array.isArray(byStatus.ordersByStatus)) {\n  for (const s of byStatus.ordersByStatus) {\n    if (s.count > 0) {\n      const map = {\n        IN_REVIEW: '🔍 En Revisión',\n        WAITING_APPROVAL: '⏳ Esperando Aprobación',\n        IN_REPAIR: '🔧 En Reparación',\n        READY: '✅ Listas',\n        DELIVERED: '📦 Entregadas',\n        REJECTED: '❌ Rechazadas'\n      };\n\n      statusBreakdown += `${map[s.status] || s.status}: ${s.count}\\n`;\n    }\n  }\n}\n\nreturn [\n  {\n    json: {\n      date: dateStr,\n      totalOrders: overview.totalOrders ?? 0,\n      activeOrders: overview.activeOrders ?? 0,\n      completedOrders: overview.completedOrders ?? 0,\n      rejectedOrders: overview.rejectedOrders ?? 0,\n      totalRevenue: revenue.totalRevenue ?? 0,\n      averageCost: revenue.averageCost ?? 0,\n      completionRate,\n      activeRate,\n      statusBreakdown: statusBreakdown || 'Sin datos',\n      adminPhone: 'whatsapp:+593979154106',\n      adminEmail: 'alanjoel311@gmail.com'\n    }\n  }\n];\n"
+      },
+      "id": "d26bc512-c605-4439-bcbc-cdf2fce1e86c",
+      "name": "Consolidate Report Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.adminEmail}}",
+        "subject": "📊 Resumen Diario del Sistema - {{$json.date}}",
+        "text": "=📊 RESUMEN DIARIO DEL SISTEMA DE REPARACIONES\n📅 {{$json.date}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📈 ESTADÍSTICAS GENERALES\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Total de Órdenes: {{$json.totalOrders}}\n🔄 Órdenes Activas: {{$json.activeOrders}} ({{$json.activeRate}}%)\n✅ Completadas: {{$json.completedOrders}} ({{$json.completionRate}}%)\n❌ Rechazadas: {{$json.rejectedOrders}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 INGRESOS\n━━━━━━━━━━━━━━━━━━━━━━\n💵 Ingresos Totales: ${{$json.totalRevenue}}\n📊 Costo Promedio: ${{$json.averageCost}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📦 ÓRDENES POR ESTADO\n━━━━━━━━━━━━━━━━━━━━━━\n{{$json.statusBreakdown || 'Sin órdenes registradas'}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n🧠 ANÁLISIS DEL SISTEMA\n━━━━━━━━━━━━━━━━━━━━━━\n{{$json.activeOrders > 10 \n  ? '⚠️ Alta carga de trabajo. Se recomienda asignar más técnicos.'\n  : $json.activeOrders > 5\n    ? '🟡 Flujo estable. Monitorear tiempos de respuesta.'\n    : '🟢 Sistema funcionando con carga baja.'\n}}\n\n🚀 Reporte generado automáticamente por n8n\n🤖 Sistema de Gestión de Reparaciones\n",
+        "options": {}
+      },
+      "id": "fcf5d797-d377-4254-ae2f-312aa943c98e",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        400,
+        208
+      ],
+      "webhookId": "2f96a5b2-c240-4b44-8a5f-acf494cc887f",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=📊 RESUMEN DIARIO DEL SISTEMA DE REPARACIONES\n📅 {{$json.date}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📈 ESTADÍSTICAS GENERALES\n━━━━━━━━━━━━━━━━━━━━━━\n📋 Total de Órdenes: {{$json.totalOrders}}\n🔄 Órdenes Activas: {{$json.activeOrders}} ({{$json.activeRate}}%)\n✅ Completadas: {{$json.completedOrders}} ({{$json.completionRate}}%)\n❌ Rechazadas: {{$json.rejectedOrders}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n💰 INGRESOS\n━━━━━━━━━━━━━━━━━━━━━━\n💵 Ingresos Totales: ${{$json.totalRevenue}}\n📊 Costo Promedio: ${{$json.averageCost}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n📦 ÓRDENES POR ESTADO\n━━━━━━━━━━━━━━━━━━━━━━\n{{$json.statusBreakdown || 'Sin órdenes registradas'}}\n\n━━━━━━━━━━━━━━━━━━━━━━\n🧠 ANÁLISIS DEL SISTEMA\n━━━━━━━━━━━━━━━━━━━━━━\n{{$json.activeOrders > 10 \n  ? '⚠️ Alta carga de trabajo. Se recomienda asignar más técnicos.'\n  : $json.activeOrders > 5\n    ? '🟡 Flujo estable. Monitorear tiempos de respuesta.'\n    : '🟢 Sistema funcionando con carga baja.'\n}}\n",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        400,
+        -16
+      ],
+      "id": "ca50f50d-93b9-462b-80e9-9233de81cba0",
+      "name": "Send Telegram Report",
+      "webhookId": "fdece43c-9dfd-4863-bc43-f4fc734c9263",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule: Every Day 8 AM": {
+      "main": [
+        [
+          {
+            "node": "Get Orders Overview",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Orders Overview": {
+      "main": [
+        [
+          {
+            "node": "Consolidate Report Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidate Report Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Telegram Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "15ac7b60-f1c8-459c-b1d0-5f21708cafc5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f68891e84c594fce25492efee91afe17e01f2a1b969fe1fd129506a3fbaec716"
+  },
+  "id": "uhUFADib0avXyW6m353JA",
+  "tags": []
+}

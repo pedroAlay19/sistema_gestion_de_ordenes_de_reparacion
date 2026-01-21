@@ -12,3 +12,7 @@
 {"timestamp":"2026-01-20T20:52:33.119Z","type":"success","method":"tools/call","toolName":"search_equipment","args":{"query":"apple 1"},"executionTimeMs":1777}
 {"timestamp":"2026-01-20T20:52:37.658Z","type":"request","method":"tools/call","params":{"name":"create_repair_order","arguments":{"imageUrls":["https://generative-models.web.app/images/broken_phone.jpeg"],"problemDescription":"La pantalla está rota.","equipmentId":"87420ffb-52db-4f92-8ac3-3c2adfca91f2"}},"ip":"::1"}
 {"timestamp":"2026-01-20T20:52:41.369Z","type":"success","method":"tools/call","toolName":"create_repair_order","args":{"imageUrls":["https://generative-models.web.app/images/broken_phone.jpeg"],"problemDescription":"La pantalla está rota.","equipmentId":"87420ffb-52db-4f92-8ac3-3c2adfca91f2"},"executionTimeMs":3711}
+{"timestamp":"2026-01-21T16:00:20.018Z","type":"request","method":"tools/list","ip":"::1"}
+{"timestamp":"2026-01-21T16:00:20.023Z","type":"success","method":"tools/list","toolCount":4,"executionTimeMs":6}
+{"timestamp":"2026-01-21T16:00:24.361Z","type":"request","method":"tools/call","params":{"name":"get_repair_orders","arguments":{"equipmentId":"bbc606f5-8e9f-4e48-af82-a46dd04c7799"}},"ip":"::1"}
+{"timestamp":"2026-01-21T16:00:26.801Z","type":"success","method":"tools/call","toolName":"get_repair_orders","args":{"equipmentId":"bbc606f5-8e9f-4e48-af82-a46dd04c7799"},"executionTimeMs":2440}

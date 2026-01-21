@@ -1,0 +1,310 @@
+{
+  "name": "03 - Technician Task Assigned",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-assigned",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "99f74875-115f-454a-8bb3-f3833d0159dd",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -336,
+        48
+      ],
+      "webhookId": "task-assigned"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.detailId}}",
+              "operation": "isNotEmpty"
+            },
+            {
+              "value1": "={{$json.body.technicianPhone}}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "1ae7c2d6-f889-41ed-94a8-c5b3c33fc25d",
+      "name": "Validate Task Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "a37cc7ef-8067-4a18-81a1-fb96fe999866",
+      "name": "Wait 2 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        112,
+        240
+      ],
+      "webhookId": "5c738ccb-f1c4-411e-89d0-ce60865f7805"
+    },
+    {
+      "parameters": {
+        "url": "={{$env.REST_SERVICE_URL}}/repair-orders/detail/{{$json.body.detailId}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "92c87a5c-4502-4e53-ae92-b37170c7ee64",
+      "name": "Check Task Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        320,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aC4LEMm3BhCRFHwB",
+          "name": "REST API Header Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.status}}",
+              "value2": "PENDING"
+            }
+          ]
+        }
+      },
+      "id": "f8385644-e094-4e70-a8cf-48fb9f759606",
+      "name": "Still Pending?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        512,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Task notification sent\", \"detailId\": $json.body.detailId } }}",
+        "options": {}
+      },
+      "id": "793be202-2e14-4e1b-aee9-310689799c1f",
+      "name": "Response Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        320,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": false, \"error\": \"Invalid task data\" } }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "3723f04c-8f34-45d7-b471-d39f48e4da5f",
+      "name": "Response Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        112,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.technicianEmail}}",
+        "subject": "👨‍🔧 Nueva Tarea: {{$json.body.serviceName}} - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "options": {}
+      },
+      "id": "52afc2dc-8660-436d-b8d9-26e47af6043f",
+      "name": "Send Email Task",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        112,
+        96
+      ],
+      "webhookId": "bd586257-239a-41d0-9de8-e294712e363b",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=👨‍🔧 *NUEVA TAREA ASIGNADA*  \n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}} \n🔧 Servicio: {{$json.body.serviceName}} \n🛠️ Equipo: {{$json.body.equipmentType}} \n👤 Cliente: {{$json.body.clientName}}  \n💰 Precio: ${{$json.body.repairPrice}} \n{{ $json.body.priority === 'high' ? '🔴 *PRIORIDAD ALTA*' : $json.body.priority === 'medium' ? '🟡 Prioridad Media' : '🟢 Prioridad Baja' }}  {{ $json.body.notes ? \n'📝 Notas: ' + $json.body.notes : '' }}  \n⏰ Asignada: {{$now.toLocaleString('es-EC', { timeZone: 'America/Guayaquil' })}}  \n\n👉 Actualiza el estado de tu tarea en el sistema.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        -48
+      ],
+      "id": "71549ce4-3d61-49b6-b7f3-4658bc8c865c",
+      "name": "Send WhatsApp Task",
+      "webhookId": "85865540-ac11-4a38-a658-b1f6276c729e",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=⏰ *RECORDATORIO DE TAREA*\n\n📋 Orden: #{{$node['Webhook'].json.body.orderId.slice(0,8)}}\n🔧 Servicio: {{$node['Webhook'].json.body.serviceName}}\n\n⚠️ Esta tarea fue asignada hace 2 horas y aún está pendiente.\n\n👉 Por favor actualiza el estado en el sistema si ya comenzaste a trabajar en ella.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        224
+      ],
+      "id": "5e574afe-cebe-4710-b19d-cbea6c28dbfb",
+      "name": "Send Reminder",
+      "webhookId": "ee78811e-b978-4d22-be45-a33b7a03b622",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Task Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Task Data": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Hours",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp Task",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check Task Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Task Status": {
+      "main": [
+        [
+          {
+            "node": "Still Pending?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Still Pending?": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Task": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Task": {
+      "main": [
+        [
+          {
+            "node": "Response Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "52c2eed4-7533-499a-b68d-3bfdf07e0146",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f68891e84c594fce25492efee91afe17e01f2a1b969fe1fd129506a3fbaec716"
+  },
+  "id": "Ztf22CEQRnYPdA4lnF0sf",
+  "tags": []
+}

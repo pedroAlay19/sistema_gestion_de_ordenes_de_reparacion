@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CreateRepairOrderDto } from './dto/create-repair-order.dto';
+import { N8nService } from '../n8n-integration/n8n.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RepairOrder } from './entities/repair-order.entity';
 import { DataSource, Repository } from 'typeorm';
@@ -41,6 +42,8 @@ export class RepairOrdersService {
     private readonly usersService: UsersService,
 
     private readonly dataSource: DataSource,
+
+    private readonly n8nService: N8nService,
   ) {}
 
   async create(createRepairOrderDto: CreateRepairOrderDto) {
@@ -58,6 +61,26 @@ export class RepairOrdersService {
       problemDescription: createRepairOrderDto.problemDescription,
       imageUrls: createRepairOrderDto.imageUrls || [],
     });
+
+    const savedOrder = await this.repairOrderRepository.save(order);
+
+    // DISPARAR EVENTO A n8n
+  await this.n8nService.notifyRepairOrderCreated({
+    orderId: savedOrder.id,
+    equipmentId: equipment.id,
+    equipmentType: equipment.type,
+    equipmentBrand: equipment.brand,
+    equipmentModel: equipment.model,
+    problemDescription: savedOrder.problemDescription,
+    clientName: `${equipment.user.name} ${equipment.user.lastName}`,
+    clientEmail: equipment.user.email,
+    clientPhone: equipment.user.phone,
+    technicianName: `${evaluator.name} ${evaluator.lastName}`,
+    technicianPhone: evaluator.phone,
+    technicianEmail: evaluator.email,
+    createdAt: savedOrder.createdAt.toISOString(),
+  });
+
     return await this.repairOrderRepository.save(order);
   }
 
@@ -152,58 +175,97 @@ export class RepairOrdersService {
 
   // Paso 1: Tecnico evalua la orden
   async evaluateRepairOrder(
-    orderId: string,
-    dto: EvaluateRepairOrderDto,
-    technicianId: string,
-  ): Promise<RepairOrder> {
-    const order = await this.repairOrderRepository.findOne({
-      where: { id: orderId, evaluatedBy: { userId: technicianId } },
-      relations: ['equipment', 'evaluatedBy'],
-    });
+  orderId: string,
+  dto: EvaluateRepairOrderDto,
+  technicianId: string,
+): Promise<RepairOrder> {
+  const order = await this.repairOrderRepository.findOne({
+    where: { id: orderId, evaluatedBy: { userId: technicianId } },
+    relations: ['equipment', 'equipment.user', 'evaluatedBy'],
+  });
 
-    if (!order) {
-      throw new NotFoundException(
-        'Order not found or you are not the assigned evaluator',
-      );
-    }
+  if (!order) {
+    throw new NotFoundException(
+      'Order not found or you are not the assigned evaluator',
+    );
+  }
 
-    if (order.status !== OrderRepairStatus.IN_REVIEW) {
-      throw new BadRequestException(
-        'Order must be in IN_REVIEW status to evaluate',
-      );
-    }
+  if (order.status !== OrderRepairStatus.IN_REVIEW) {
+    throw new BadRequestException(
+      'Order must be in IN_REVIEW status to evaluate',
+    );
+  }
 
-    order.diagnosis = dto.diagnosis;
-    order.estimatedCost = dto.estimatedCost;
-    order.status = OrderRepairStatus.WAITING_APPROVAL;
+  const previousStatus = order.status;
+  order.diagnosis = dto.diagnosis;
+  order.estimatedCost = dto.estimatedCost;
+  order.status = OrderRepairStatus.WAITING_APPROVAL;
 
-    return await this.repairOrderRepository.save(order);
+  const savedOrder = await this.repairOrderRepository.save(order);
+
+  // DISPARAR EVENTO DE CAMBIO DE ESTADO
+  await this.n8nService.notifyRepairOrderStatusChanged({
+    orderId: savedOrder.id,
+    equipmentType: order.equipment.type,
+    previousStatus,
+    newStatus: savedOrder.status,
+    clientName: `${order.equipment.user.name} ${order.equipment.user.lastName}`,
+    clientEmail: order.equipment.user.email,
+    clientPhone: order.equipment.user.phone,
+    technicianName: `${order.evaluatedBy.name} ${order.evaluatedBy.lastName}`,
+    technicianPhone: order.evaluatedBy.phone,
+    diagnosis: savedOrder.diagnosis,
+    estimatedCost: Number(savedOrder.estimatedCost),
+    changedAt: new Date().toISOString(),
+  });
+
+  return savedOrder;
   }
 
   // Paso 2: Cliente aprueba la orden
   async approveRepairOrder(
-    orderId: string,
-    userId: string,
-  ): Promise<RepairOrder> {
-    const order = await this.repairOrderRepository.findOne({
-      where: { id: orderId, equipment: { user: { userId: userId } } },
-      relations: ['equipment', 'equipment.user'],
-    });
+  orderId: string,
+  userId: string,
+): Promise<RepairOrder> {
+  const order = await this.repairOrderRepository.findOne({
+    where: { id: orderId, equipment: { user: { userId: userId } } },
+    relations: ['equipment', 'equipment.user'],
+  });
 
-    if (!order) {
-      throw new NotFoundException('Order not found or not yours');
-    }
+  if (!order) {
+    throw new NotFoundException('Order not found or not yours');
+  }
 
-    if (order.status !== OrderRepairStatus.WAITING_APPROVAL) {
-      throw new BadRequestException(
-        'Order must be in WAITING_APPROVAL status to approve',
-      );
-    }
+  if (order.status !== OrderRepairStatus.WAITING_APPROVAL) {
+    throw new BadRequestException(
+      'Order must be in WAITING_APPROVAL status to approve',
+    );
+  }
 
-    order.status = OrderRepairStatus.IN_REPAIR;
-    order.equipment.currentStatus = EquipmentStatus.IN_REPAIR;
-    await this.equipmentsService.updateStatus(order.equipment.id, EquipmentStatus.IN_REPAIR);
-    return await this.repairOrderRepository.save(order);
+  const previousStatus = order.status;
+  order.status = OrderRepairStatus.IN_REPAIR;
+  order.equipment.currentStatus = EquipmentStatus.IN_REPAIR;
+  
+  await this.equipmentsService.updateStatus(
+    order.equipment.id,
+    EquipmentStatus.IN_REPAIR,
+  );
+  
+  const savedOrder = await this.repairOrderRepository.save(order);
+
+  // DISPARAR EVENTO DE APROBACIÓN
+  await this.n8nService.notifyRepairOrderStatusChanged({
+    orderId: savedOrder.id,
+    equipmentType: order.equipment.type,
+    previousStatus,
+    newStatus: savedOrder.status,
+    clientName: `${order.equipment.user.name} ${order.equipment.user.lastName}`,
+    clientEmail: order.equipment.user.email,
+    clientPhone: order.equipment.user.phone,
+    changedAt: new Date().toISOString(),
+  });
+
+  return savedOrder;
   }
 
   // Paso 2: Cliente rechaza la orden
@@ -553,4 +615,38 @@ export class RepairOrdersService {
 
     return { topServices };
   }
+
+  async getDailySummaryForNotification(): Promise<any> {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [totalOrders, activeOrders, completedToday] = await Promise.all([
+    this.repairOrderRepository.count(),
+    this.repairOrderRepository.count({
+      where: [
+        { status: OrderRepairStatus.IN_REVIEW },
+        { status: OrderRepairStatus.WAITING_APPROVAL },
+        { status: OrderRepairStatus.IN_REPAIR },
+        { status: OrderRepairStatus.READY },
+      ],
+    }),
+    this.repairOrderRepository.count({
+      where: {
+        status: OrderRepairStatus.DELIVERED,
+        updatedAt: today,
+      },
+    }),
+  ]);
+
+  const revenueStats = await this.getRevenueStats();
+
+  return {
+    date: today.toISOString().split('T')[0],
+    totalOrders,
+    activeOrders,
+    completedToday,
+    revenue: revenueStats.totalRevenue,
+    };
+  }
+
 }

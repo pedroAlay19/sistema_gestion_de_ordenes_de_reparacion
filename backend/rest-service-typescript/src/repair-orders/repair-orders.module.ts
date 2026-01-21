@@ -14,11 +14,12 @@ import { SparePartsModule } from 'src/spare-parts/spare-parts.module';
 import { RepairOrderNotification } from './entities/repair-order-notification.entity';
 import { HttpModule } from '@nestjs/axios';
 import { AuthModule } from '../auth/auth.module';
+import { N8nModule } from '../n8n-integration/n8n.module';
 
 @Module({
   imports:[
     TypeOrmModule.forFeature([RepairOrderDetail, RepairOrderPart, RepairOrder, RepairOrderNotification]),
-    EquipmentsModule, MaintenanceServicesModule, UsersModule, SparePartsModule, HttpModule, AuthModule],
+    EquipmentsModule, MaintenanceServicesModule, UsersModule, SparePartsModule, HttpModule, AuthModule, N8nModule,],
   controllers: [RepairOrdersController],
   providers: [RepairOrdersService, RepairOrderDetailsService, RepairOrderPartsService],
   exports: [RepairOrdersService]

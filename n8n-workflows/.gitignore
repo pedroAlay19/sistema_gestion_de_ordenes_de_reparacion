@@ -1,0 +1,14 @@
+# Variables de entorno sensibles
+.env.n8n
+
+# Datos de n8n
+n8n_data/
+
+# Logs
+*.log
+logs/
+
+# Archivos temporales
+*.tmp
+*.temp
+.DS_Store

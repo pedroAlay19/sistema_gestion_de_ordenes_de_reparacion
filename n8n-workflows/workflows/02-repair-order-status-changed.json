@@ -1,0 +1,385 @@
+{
+  "name": "02 - Repair Order Status Changed",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "repair-order-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1b29b502-b3e3-409c-94d4-9d4766c4d1c9",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        208
+      ],
+      "webhookId": "repair-order-status"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.newStatus}}",
+              "value2": "WAITING_APPROVAL"
+            }
+          ]
+        }
+      },
+      "id": "c9f56bc9-9928-4b54-a55a-503a40b5d7a9",
+      "name": "Status: WAITING_APPROVAL",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.newStatus}}",
+              "value2": "IN_REPAIR"
+            }
+          ]
+        }
+      },
+      "id": "adf7285b-a4f6-4f3d-9c8c-6885e8ae06e2",
+      "name": "Status: IN_REPAIR",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.body.newStatus}}",
+              "value2": "READY"
+            }
+          ]
+        }
+      },
+      "id": "c7bcf536-8d7d-453c-9a16-7035c78be406",
+      "name": "Status: READY",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.clientEmail}}",
+        "subject": "💰 Presupuesto Listo - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "text": "=💰 *PRESUPUESTO LISTO*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n\n🔍 *Diagnóstico:*\n{{$json.body.diagnosis}}\n\n💵 *Costo Estimado:* ${{$json.body.estimatedCost}}\n\n👉 Ingresa al sistema para aprobar o rechazar la reparación.",
+        "options": {}
+      },
+      "id": "321a92f8-00aa-42cc-8289-6fcd3c3ce1ac",
+      "name": "Email: Budget Ready",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        0,
+        96
+      ],
+      "webhookId": "176177b9-e4e3-4413-b656-939cc578e8af",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.clientEmail}}",
+        "subject": "🎉 ¡Tu Equipo Está Listo! - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "text": "=🎉 *¡TU EQUIPO ESTÁ LISTO!*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n\n✅ La reparación ha finalizado\n💰 Costo Final: ${{$json.body.finalCost || $json.body.estimatedCost}}\n\n📍 Puedes retirar tu equipo en nuestro taller.\n\n⏰ Horario: Lun-Vie 9:00 AM - 6:00 PM",
+        "options": {}
+      },
+      "id": "982a6c6f-dd4b-4eae-b372-9e1ba82842e0",
+      "name": "Email: Ready",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        0,
+        688
+      ],
+      "webhookId": "3334275b-e00f-46a5-b619-4faada72af61",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { \"success\": true, \"message\": \"Status notification sent\", \"status\": $json.body.newStatus } }}",
+        "options": {}
+      },
+      "id": "f3cc11b1-09e9-44a1-9110-4db37e1d827c",
+      "name": "Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        256,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=✅ *ORDEN APROBADA*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n👤 Cliente: {{$json.body.clientName}}\n\n🚀 El cliente aprobó la reparación.\n\n👉 Puedes comenzar a trabajar en esta orden.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        240
+      ],
+      "id": "0c11ca66-b11c-4e9e-a7a2-b0307341653e",
+      "name": "Telegram: Approved",
+      "webhookId": "0de627fe-6ae6-4420-b8a0-de7d95942e97",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alanjoel311@gmail.com",
+        "toEmail": "={{$json.body.clientEmail}}",
+        "subject": "💰 Presupuesto Listo - Orden #{{$json.body.orderId.slice(0,8)}}",
+        "text": "=✅ *ORDEN APROBADA*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n👤 Cliente: {{$json.body.clientName}}\n\n🚀 El cliente aprobó la reparación.\n\n👉 Puedes comenzar a trabajar en esta orden.",
+        "options": {}
+      },
+      "id": "c407c8bb-1553-4ce5-8fb6-9194108e5f80",
+      "name": "Email: Approved",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        0,
+        384
+      ],
+      "webhookId": "176177b9-e4e3-4413-b656-939cc578e8af",
+      "credentials": {
+        "smtp": {
+          "id": "3r7eRzYQtc8Pn9aS",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=🎉 *¡TU EQUIPO ESTÁ LISTO!*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n\n✅ La reparación ha finalizado\n💰 Costo Final: ${{$json.body.finalCost || $json.body.estimatedCost}}\n\n📍 Puedes retirar tu equipo en nuestro taller.\n\n⏰ Horario: Lun-Vie 9:00 AM - 6:00 PM",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        528
+      ],
+      "id": "bbad099e-40a7-4cde-afae-44ae593fe44c",
+      "name": "Telegram: Ready",
+      "webhookId": "0de627fe-6ae6-4420-b8a0-de7d95942e97",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7393139459",
+        "text": "=💰 *PRESUPUESTO LISTO*\n\n📋 Orden: #{{$json.body.orderId.slice(0,8)}}\n🛠️ Equipo: {{$json.body.equipmentType}}\n\n🔍 *Diagnóstico:*\n{{$json.body.diagnosis}}\n\n💵 *Costo Estimado:* ${{$json.body.estimatedCost}}\n\n👉 Ingresa al sistema para aprobar o rechazar la reparación.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -64
+      ],
+      "id": "41e47a0f-aaa7-448d-9145-445273e07382",
+      "name": "Telegram: Budget Ready",
+      "webhookId": "0de627fe-6ae6-4420-b8a0-de7d95942e97",
+      "credentials": {
+        "telegramApi": {
+          "id": "Nnto2b3noDv7nMU3",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Status: WAITING_APPROVAL",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Status: IN_REPAIR",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Status: READY",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: WAITING_APPROVAL": {
+      "main": [
+        [
+          {
+            "node": "Email: Budget Ready",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram: Budget Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: IN_REPAIR": {
+      "main": [
+        [
+          {
+            "node": "Email: Approved",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram: Approved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: READY": {
+      "main": [
+        [
+          {
+            "node": "Email: Ready",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Telegram: Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Budget Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Approved": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email: Approved": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Budget Ready": {
+      "main": [
+        [
+          {
+            "node": "Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "124bd730-9d23-4c11-aa9e-6388e100f2de",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f68891e84c594fce25492efee91afe17e01f2a1b969fe1fd129506a3fbaec716"
+  },
+  "id": "Bi1q8QJadmIrEZ4Hz8Ix6",
+  "tags": []
+}

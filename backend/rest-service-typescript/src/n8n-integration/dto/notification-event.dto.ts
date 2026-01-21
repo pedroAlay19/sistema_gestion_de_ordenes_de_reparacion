@@ -42,7 +42,7 @@ export interface TechnicianTaskAssignedEvent {
   serviceDescription?: string;
   repairPrice: number;
   technicianName: string;
-  technicianPhone: string;
+  technicianPhone?: string;
   technicianEmail: string;
   equipmentType: string;
   clientName: string;

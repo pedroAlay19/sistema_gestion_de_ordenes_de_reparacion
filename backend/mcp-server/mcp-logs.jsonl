@@ -16,3 +16,11 @@
 {"timestamp":"2026-01-21T16:00:20.023Z","type":"success","method":"tools/list","toolCount":4,"executionTimeMs":6}
 {"timestamp":"2026-01-21T16:00:24.361Z","type":"request","method":"tools/call","params":{"name":"get_repair_orders","arguments":{"equipmentId":"bbc606f5-8e9f-4e48-af82-a46dd04c7799"}},"ip":"::1"}
 {"timestamp":"2026-01-21T16:00:26.801Z","type":"success","method":"tools/call","toolName":"get_repair_orders","args":{"equipmentId":"bbc606f5-8e9f-4e48-af82-a46dd04c7799"},"executionTimeMs":2440}
+{"timestamp":"2026-01-21T16:58:13.450Z","type":"request","method":"tools/list","ip":"::1"}
+{"timestamp":"2026-01-21T16:58:13.454Z","type":"success","method":"tools/list","toolCount":4,"executionTimeMs":4}
+{"timestamp":"2026-01-21T16:58:24.696Z","type":"request","method":"tools/call","params":{"name":"search_equipment","arguments":{"query":"samsung"}},"ip":"::1"}
+{"timestamp":"2026-01-21T16:58:26.284Z","type":"success","method":"tools/call","toolName":"search_equipment","args":{"query":"samsung"},"executionTimeMs":1588}
+{"timestamp":"2026-01-21T16:58:29.890Z","type":"request","method":"tools/call","params":{"name":"validate_availability","arguments":{"equipmentId":"ea13f013-782e-474c-952e-c95dec4b4697"}},"ip":"::1"}
+{"timestamp":"2026-01-21T16:58:30.382Z","type":"success","method":"tools/call","toolName":"validate_availability","args":{"equipmentId":"ea13f013-782e-474c-952e-c95dec4b4697"},"executionTimeMs":492}
+{"timestamp":"2026-01-21T16:58:37.347Z","type":"request","method":"tools/call","params":{"name":"create_repair_order","arguments":{"problemDescription":"La pantalla está rota.","equipmentId":"ea13f013-782e-474c-952e-c95dec4b4697","imageUrls":["https://r2.web.moon.fm/moduledata/image/7d6a455f-836e-4903-883a-8671295963f4"]}},"ip":"::1"}
+{"timestamp":"2026-01-21T16:58:41.708Z","type":"success","method":"tools/call","toolName":"create_repair_order","args":{"problemDescription":"La pantalla está rota.","equipmentId":"ea13f013-782e-474c-952e-c95dec4b4697","imageUrls":["https://r2.web.moon.fm/moduledata/image/7d6a455f-836e-4903-883a-8671295963f4"]},"executionTimeMs":4361}
